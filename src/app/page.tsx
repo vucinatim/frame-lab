@@ -1,103 +1,163 @@
+"use client";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { useStore } from "@/store";
+import dynamic from "next/dynamic";
+import { Toaster, toast } from "sonner";
+import { Spinner } from "@/components/ui/spinner";
 import Image from "next/image";
 
-export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+const PoseEditor = dynamic(() => import("@/components/pose-editor"), {
+  ssr: false,
+});
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
+export default function Home() {
+  const {
+    characterImage,
+    setCharacterImage,
+    generationState,
+    setGenerationState,
+    finalSpriteSheet,
+    setFinalSpriteSheet,
+  } = useStore();
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setCharacterImage(event.target.files[0]);
+    }
+  };
+
+  const toBase64 = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+
+  const handleGenerate = async () => {
+    if (!characterImage) {
+      toast.error("Please upload a character image first.");
+      return;
+    }
+
+    setGenerationState({ status: "loading" });
+    toast.info("Starting generation...");
+
+    try {
+      const imageBase64 = await toBase64(characterImage);
+      const mockPoseData = [{ image: "pose1.png" }]; // Replace with real data
+
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          characterImage: imageBase64,
+          poseData: mockPoseData,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate sprite sheet");
+      }
+
+      const result = await response.json();
+      setFinalSpriteSheet(result[0]); // Assuming result is an array of URLs
+      setGenerationState({ status: "success" });
+      toast.success("Sprite sheet generated successfully!");
+    } catch (error) {
+      console.error(error);
+      setGenerationState({
+        status: "error",
+        message: (error as Error).message,
+      });
+      toast.error("An error occurred during generation.");
+    }
+  };
+
+  return (
+    <div className="flex h-full">
+      <Toaster />
+      <aside className="w-1/4 p-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Controls</CardTitle>
+            <CardDescription>
+              Adjust your animation settings here.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="character-image">Character Image</Label>
+              <Input
+                id="character-image"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="animation-preset">Animation Preset</Label>
+              <Select>
+                <SelectTrigger id="animation-preset">
+                  <SelectValue placeholder="Select a preset" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="walk">Walk</SelectItem>
+                  <SelectItem value="run">Run</SelectItem>
+                  <SelectItem value="idle">Idle</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              className="w-full"
+              onClick={handleGenerate}
+              disabled={generationState.status === "loading"}
+            >
+              {generationState.status === "loading" ? <Spinner /> : "Generate"}
+            </Button>
+          </CardContent>
+        </Card>
+      </aside>
+      <main className="flex-1 p-4">
+        <Card className="h-full">
+          <CardHeader>
+            <CardTitle>Editor</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-center h-full">
+            {generationState.status === "loading" && <Spinner size="large" />}
+            {generationState.status !== "loading" && !finalSpriteSheet && (
+              <PoseEditor />
+            )}
+            {finalSpriteSheet && (
+              <Image
+                src={finalSpriteSheet}
+                alt="Generated Sprite Sheet"
+                width={512}
+                height={512}
+              />
+            )}
+          </CardContent>
+        </Card>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
