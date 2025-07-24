@@ -7,7 +7,9 @@ import { KonvaEventObject } from "konva/lib/Node";
 import { BONES, Joint } from "@/lib/pose-data";
 
 const PoseEditor = () => {
-  const { poseData, setJointRotation, translateSkeleton } = useStore();
+  const { skeletons, selectedFrame, setJointRotation, translateSkeleton } =
+    useStore();
+  const poseData = skeletons[selectedFrame];
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
   const lastDragPos = useRef({ x: 0, y: 0 });
   const jointsById = Object.fromEntries(poseData.map((j) => [j.id, j]));
@@ -37,7 +39,7 @@ const PoseEditor = () => {
       const currentPos = { x: e.target.x(), y: e.target.y() };
       const dx = currentPos.x - lastDragPos.current.x;
       const dy = currentPos.y - lastDragPos.current.y;
-      translateSkeleton(dx, dy);
+      translateSkeleton(selectedFrame, dx, dy);
       lastDragPos.current = currentPos;
       return;
     }
@@ -59,7 +61,7 @@ const PoseEditor = () => {
     }
 
     const newRelativeRotation = newAbsoluteRotation - parentAbsoluteRotation;
-    setJointRotation(jointId, newRelativeRotation);
+    setJointRotation(selectedFrame, jointId, newRelativeRotation);
   };
 
   return (

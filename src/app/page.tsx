@@ -37,8 +37,10 @@ export default function Home() {
       <aside className="w-1/4 p-4 pr-0 h-screen">
         <ControlPanel />
       </aside>
-      <main className="flex-1 p-4">
-        <EditorView />
+      <main className="relative flex-1">
+        <div className="absolute inset-0 p-4">
+          <EditorView />
+        </div>
       </main>
     </div>
   );

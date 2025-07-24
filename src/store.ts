@@ -25,7 +25,7 @@ interface CharacterGenerationState {
 interface AppState {
   characterImage: File | null;
   characterImageDataUrl: string | null; // For persistence
-  poseData: Skeleton;
+  skeletons: Skeleton[];
   generationState: GenerationState;
   finalSpriteSheet: string | null;
   outputSize: OutputSize;
@@ -33,11 +33,18 @@ interface AppState {
   currentFrameGenerationId: string | null;
   sequenceGenerationId: string | null;
   lightboxOpen: boolean;
+  selectedFrame: number;
+  isPlaying: boolean;
+  fps: number;
   setCharacterImage: (image: File | null) => void;
   setCharacterImageDataUrl: (dataUrl: string | null) => void;
-  setPoseData: (data: Skeleton) => void;
-  setJointRotation: (jointId: string, rotation: number) => void;
-  translateSkeleton: (dx: number, dy: number) => void;
+  setPoseData: (index: number, data: Skeleton) => void;
+  setJointRotation: (
+    frameIndex: number,
+    jointId: string,
+    rotation: number
+  ) => void;
+  translateSkeleton: (frameIndex: number, dx: number, dy: number) => void;
   setGenerationState: (state: GenerationState) => void;
   setFinalSpriteSheet: (url: string | null) => void;
   setOutputSize: (size: OutputSize) => void;
@@ -45,6 +52,10 @@ interface AppState {
   setCurrentFrameGenerationId: (id: string | null) => void;
   setSequenceGenerationId: (id: string | null) => void;
   setLightboxOpen: (isOpen: boolean) => void;
+  setSelectedFrame: (index: number) => void;
+  toggleIsPlaying: () => void;
+  setFps: (fps: number) => void;
+  loadSkeletons: (skeletons: Skeleton[]) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -52,7 +63,7 @@ export const useStore = create<AppState>()(
     (set, get) => ({
       characterImage: null,
       characterImageDataUrl: null,
-      poseData: DEFAULT_SKELETON,
+      skeletons: Array(10).fill(DEFAULT_SKELETON),
       generationState: { status: "idle" },
       finalSpriteSheet: null,
       outputSize: "512x512",
@@ -64,19 +75,26 @@ export const useStore = create<AppState>()(
       currentFrameGenerationId: null,
       sequenceGenerationId: null,
       lightboxOpen: false,
+      selectedFrame: 0,
+      isPlaying: false,
+      fps: 24,
 
       setCharacterImage: (image) => set({ characterImage: image }),
 
       setCharacterImageDataUrl: (dataUrl) =>
         set({ characterImageDataUrl: dataUrl }),
 
-      setPoseData: (data) => set({ poseData: data }),
+      setPoseData: (index, data) =>
+        set((state) => ({
+          skeletons: state.skeletons.map((s, i) => (i === index ? data : s)),
+        })),
 
-      setJointRotation: (jointId, rotation) =>
+      setJointRotation: (frameIndex, jointId, rotation) =>
         set((state) => {
-          const newPoseData = [...state.poseData];
+          const newSkeletons = [...state.skeletons];
+          const targetSkeleton = [...newSkeletons[frameIndex]];
           const jointsById = Object.fromEntries(
-            newPoseData.map((j) => [j.id, j])
+            targetSkeleton.map((j) => [j.id, j])
           );
 
           // Update the target joint's rotation
@@ -120,17 +138,20 @@ export const useStore = create<AppState>()(
             updateChildren(jointId, targetJoint.rotation);
           }
 
-          return { poseData: newPoseData };
+          newSkeletons[frameIndex] = targetSkeleton;
+          return { skeletons: newSkeletons };
         }),
 
-      translateSkeleton: (dx, dy) =>
-        set((state) => ({
-          poseData: state.poseData.map((joint) => ({
+      translateSkeleton: (frameIndex, dx, dy) =>
+        set((state) => {
+          const newSkeletons = [...state.skeletons];
+          newSkeletons[frameIndex] = newSkeletons[frameIndex].map((joint) => ({
             ...joint,
             x: joint.x + dx,
             y: joint.y + dy,
-          })),
-        })),
+          }));
+          return { skeletons: newSkeletons };
+        }),
 
       setGenerationState: (state) => set({ generationState: state }),
       setFinalSpriteSheet: (url) => set({ finalSpriteSheet: url }),
@@ -143,6 +164,10 @@ export const useStore = create<AppState>()(
         set({ currentFrameGenerationId: id }),
       setSequenceGenerationId: (id) => set({ sequenceGenerationId: id }),
       setLightboxOpen: (isOpen) => set({ lightboxOpen: isOpen }),
+      setSelectedFrame: (index) => set({ selectedFrame: index }),
+      toggleIsPlaying: () => set((state) => ({ isPlaying: !state.isPlaying })),
+      setFps: (fps) => set({ fps }),
+      loadSkeletons: (skeletons) => set({ skeletons, selectedFrame: 0 }),
     }),
     {
       name: "frame-lab-storage",
@@ -150,9 +175,11 @@ export const useStore = create<AppState>()(
       partialize: (state) => ({
         // Don't persist File objects, but persist the data URL
         characterImageDataUrl: state.characterImageDataUrl,
-        poseData: state.poseData,
+        skeletons: state.skeletons,
         outputSize: state.outputSize,
         finalSpriteSheet: state.finalSpriteSheet,
+        selectedFrame: state.selectedFrame,
+        fps: state.fps,
       }),
     }
   )
