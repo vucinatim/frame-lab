@@ -23,18 +23,22 @@ async function fetchImageBuffer(url: string): Promise<Buffer> {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { characterImage, poseData } = body;
+    const { characterImage, poseData, outputSize } = body;
 
-    if (!characterImage || !poseData) {
-      return new NextResponse("Missing character image or pose data", {
-        status: 400,
-      });
+    if (!characterImage || !poseData || !outputSize) {
+      return new NextResponse(
+        "Missing character image, pose data, or output size",
+        {
+          status: 400,
+        }
+      );
     }
 
     if (!process.env.REPLICATE_API_TOKEN) {
       return new NextResponse("Missing Replicate API token", { status: 500 });
     }
 
+    const [width, height] = outputSize.split("x").map(Number);
     const frameBuffers: Buffer[] = [];
 
     for (const pose of poseData) {
@@ -46,6 +50,8 @@ export async function POST(request: Request) {
           image: characterImage,
           control_image: pose.image,
           controlnet_conditioning_scale: 0.8,
+          width,
+          height,
         },
       })) as unknown as string[];
 
