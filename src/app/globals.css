@@ -120,3 +120,16 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes flash {
+  0% {
+    background-color: hsl(var(--primary) / 0.2);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.animate-flash {
+  animation: flash 1s ease-out;
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useStore } from "@/store";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -14,14 +15,27 @@ interface AnimationFrameProps {
 }
 
 export function AnimationFrame({ frame, index }: AnimationFrameProps) {
-  const { selectedFrame, setSelectedFrame } = useStore();
+  const { selectedFrame, setSelectedFrame, lastAddedFrame } = useStore();
   const isSelected = selectedFrame === index;
+  const isNewlyAdded = lastAddedFrame === index;
+  const [animate, setAnimate] = useState(false);
+
+  useEffect(() => {
+    if (isNewlyAdded) {
+      setAnimate(true);
+      const timer = setTimeout(() => {
+        setAnimate(false);
+      }, 500); // Animation duration
+      return () => clearTimeout(timer);
+    }
+  }, [isNewlyAdded]);
 
   return (
     <div
       className={cn(
-        "relative w-24 h-24 rounded-md overflow-hidden cursor-pointer border-2 group",
-        isSelected ? "border-blue-500" : "border-transparent"
+        "relative w-24 h-24 rounded-md overflow-hidden cursor-pointer border-2 group transition-colors duration-500",
+        isSelected ? "border-sky-500" : "border-transparent",
+        animate && "bg-sky-200"
       )}
       onClick={() => setSelectedFrame(index)}
     >

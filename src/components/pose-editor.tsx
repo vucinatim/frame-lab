@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { Stage, Layer, Circle, Line } from "react-konva";
 import { useStore } from "@/store";
 import { KonvaEventObject } from "konva/lib/Node";
-import { BONES, Joint } from "@/lib/pose-data";
+import { BONES } from "@/lib/pose-data";
+import { getAbsoluteRotation } from "@/lib/pose-utils";
 
 const PoseEditor = () => {
   const { skeletons, selectedFrame, setJointRotation, translateSkeleton } =
@@ -53,14 +54,9 @@ const PoseEditor = () => {
     const dy = e.target.y() - parent.y;
     const newAbsoluteRotation = Math.atan2(dy, dx);
 
-    let parentAbsoluteRotation = 0;
-    let current: Joint | null = parent;
-    while (current) {
-      parentAbsoluteRotation += current.rotation;
-      current = current.parentId ? jointsById[current.parentId] : null;
-    }
-
+    const parentAbsoluteRotation = getAbsoluteRotation(parent.id, jointsById);
     const newRelativeRotation = newAbsoluteRotation - parentAbsoluteRotation;
+
     setJointRotation(selectedFrame, jointId, newRelativeRotation);
   };
 

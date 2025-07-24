@@ -18,6 +18,7 @@ import {
   Trash2,
   Copy,
   ClipboardPaste,
+  ClipboardCopy,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { useAnimationPlayback } from "@/hooks/use-animation-playback";
@@ -32,6 +33,12 @@ export function Toolbar() {
     fps,
     setFps,
     skeletons,
+    addFrame,
+    deleteFrame,
+    copyPose,
+    pastePose,
+    poseClipboard,
+    duplicateFrame,
   } = useStore();
 
   useAnimationPlayback();
@@ -56,7 +63,12 @@ export function Toolbar() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" disabled={isPlaying}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  disabled={isPlaying}
+                  onClick={addFrame}
+                >
                   <PlusSquare className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -69,7 +81,23 @@ export function Toolbar() {
                 <Button
                   variant="ghost"
                   size="icon"
+                  disabled={isPlaying}
+                  onClick={duplicateFrame}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Duplicate Frame</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   disabled={isPlaying || frameCount <= 1}
+                  onClick={deleteFrame}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -80,8 +108,13 @@ export function Toolbar() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" disabled={isPlaying}>
-                  <Copy className="h-4 w-4" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  disabled={isPlaying}
+                  onClick={copyPose}
+                >
+                  <ClipboardCopy className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -90,7 +123,12 @@ export function Toolbar() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" disabled={isPlaying}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  disabled={isPlaying || !poseClipboard}
+                  onClick={pastePose}
+                >
                   <ClipboardPaste className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>

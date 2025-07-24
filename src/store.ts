@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { Skeleton, DEFAULT_SKELETON, Joint, HIERARCHY } from "@/lib/pose-data";
+import { getAbsoluteRotation, updateChildrenPositions } from "@/lib/pose-utils";
 
 export type OutputSize = "256x256" | "512x512" | "768x768" | "1024x1024";
 
@@ -36,6 +37,8 @@ interface AppState {
   selectedFrame: number;
   isPlaying: boolean;
   fps: number;
+  poseClipboard: Skeleton | null;
+  lastAddedFrame: number | null;
   setCharacterImage: (image: File | null) => void;
   setCharacterImageDataUrl: (dataUrl: string | null) => void;
   setPoseData: (index: number, data: Skeleton) => void;
@@ -56,6 +59,11 @@ interface AppState {
   toggleIsPlaying: () => void;
   setFps: (fps: number) => void;
   loadSkeletons: (skeletons: Skeleton[]) => void;
+  addFrame: () => void;
+  deleteFrame: () => void;
+  copyPose: () => void;
+  pastePose: () => void;
+  duplicateFrame: () => void;
 }
 
 export const useStore = create<AppState>()(
@@ -78,6 +86,8 @@ export const useStore = create<AppState>()(
       selectedFrame: 0,
       isPlaying: false,
       fps: 24,
+      poseClipboard: null,
+      lastAddedFrame: null,
 
       setCharacterImage: (image) => set({ characterImage: image }),
 
@@ -89,54 +99,35 @@ export const useStore = create<AppState>()(
           skeletons: state.skeletons.map((s, i) => (i === index ? data : s)),
         })),
 
-      setJointRotation: (frameIndex, jointId, rotation) =>
+      setJointRotation: (frameIndex, jointId, newRelativeRotation) =>
         set((state) => {
           const newSkeletons = [...state.skeletons];
-          const targetSkeleton = [...newSkeletons[frameIndex]];
+          const targetSkeleton = JSON.parse(
+            JSON.stringify(newSkeletons[frameIndex])
+          );
           const jointsById = Object.fromEntries(
-            targetSkeleton.map((j) => [j.id, j])
+            targetSkeleton.map((j: Joint) => [j.id, j])
           );
 
-          // Update the target joint's rotation
           const targetJoint = jointsById[jointId];
-          if (targetJoint) {
-            targetJoint.rotation = rotation;
-          }
+          if (!targetJoint || !targetJoint.parentId) return {};
 
-          // Recursive function to update children
-          const updateChildren = (
-            parentId: string,
-            parentAbsRotation: number
-          ) => {
-            const children = HIERARCHY[parentId];
-            if (children) {
-              children.forEach((childId) => {
-                const child = jointsById[childId];
-                const parent = jointsById[parentId];
-                if (child && parent) {
-                  const absRotation = parentAbsRotation + child.rotation;
-                  child.x = parent.x + Math.cos(absRotation) * child.length;
-                  child.y = parent.y + Math.sin(absRotation) * child.length;
-                  updateChildren(childId, absRotation);
-                }
-              });
-            }
-          };
+          // 1. Update the joint's relative rotation
+          targetJoint.rotation = newRelativeRotation;
 
-          // Find the absolute rotation of the parent to start the update
-          const parent = targetJoint ? jointsById[targetJoint.parentId!] : null;
-          if (parent) {
-            let parentAbsRotation = 0;
-            let current: Joint | null = parent;
-            while (current) {
-              parentAbsRotation += current.rotation;
-              current = current.parentId ? jointsById[current.parentId] : null;
-            }
-            updateChildren(parent.id, parentAbsRotation);
-          } else if (targetJoint) {
-            // This is a root joint
-            updateChildren(jointId, targetJoint.rotation);
-          }
+          // 2. Update the position of the dragged joint
+          const parent = jointsById[targetJoint.parentId];
+          const targetAbsRotation = getAbsoluteRotation(
+            targetJoint.id,
+            jointsById
+          );
+          targetJoint.x =
+            parent.x + Math.cos(targetAbsRotation) * targetJoint.length;
+          targetJoint.y =
+            parent.y + Math.sin(targetAbsRotation) * targetJoint.length;
+
+          // 3. Recursively update positions of all children
+          updateChildrenPositions(targetJoint.id, targetSkeleton, jointsById);
 
           newSkeletons[frameIndex] = targetSkeleton;
           return { skeletons: newSkeletons };
@@ -167,7 +158,68 @@ export const useStore = create<AppState>()(
       setSelectedFrame: (index) => set({ selectedFrame: index }),
       toggleIsPlaying: () => set((state) => ({ isPlaying: !state.isPlaying })),
       setFps: (fps) => set({ fps }),
-      loadSkeletons: (skeletons) => set({ skeletons, selectedFrame: 0 }),
+      loadSkeletons: (skeletons) =>
+        set({ skeletons, selectedFrame: 0, lastAddedFrame: null }),
+      addFrame: () =>
+        set((state) => {
+          const newSkeleton = JSON.parse(
+            JSON.stringify(state.skeletons[state.selectedFrame])
+          );
+          const newSkeletons = [
+            ...state.skeletons.slice(0, state.selectedFrame + 1),
+            newSkeleton,
+            ...state.skeletons.slice(state.selectedFrame + 1),
+          ];
+          return {
+            skeletons: newSkeletons,
+            selectedFrame: state.selectedFrame + 1,
+            lastAddedFrame: state.selectedFrame + 1,
+          };
+        }),
+      duplicateFrame: () =>
+        set((state) => {
+          const newSkeleton = JSON.parse(
+            JSON.stringify(state.skeletons[state.selectedFrame])
+          );
+          const newSkeletons = [
+            ...state.skeletons.slice(0, state.selectedFrame + 1),
+            newSkeleton,
+            ...state.skeletons.slice(state.selectedFrame + 1),
+          ];
+          return {
+            skeletons: newSkeletons,
+            selectedFrame: state.selectedFrame + 1,
+            lastAddedFrame: state.selectedFrame + 1,
+          };
+        }),
+      deleteFrame: () =>
+        set((state) => {
+          if (state.skeletons.length <= 1) return {};
+          const newSkeletons = state.skeletons.filter(
+            (_, index) => index !== state.selectedFrame
+          );
+          return {
+            skeletons: newSkeletons,
+            selectedFrame: Math.max(0, state.selectedFrame - 1),
+            lastAddedFrame: null,
+          };
+        }),
+      copyPose: () =>
+        set((state) => ({
+          poseClipboard: JSON.parse(
+            JSON.stringify(state.skeletons[state.selectedFrame])
+          ),
+          lastAddedFrame: null,
+        })),
+      pastePose: () =>
+        set((state) => {
+          if (!state.poseClipboard) return {};
+          const newSkeletons = [...state.skeletons];
+          newSkeletons[state.selectedFrame] = JSON.parse(
+            JSON.stringify(state.poseClipboard)
+          );
+          return { skeletons: newSkeletons, lastAddedFrame: null };
+        }),
     }),
     {
       name: "frame-lab-storage",
