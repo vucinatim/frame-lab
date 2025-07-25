@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Skeleton } from "@/lib/pose-data";
+import { OpenPoseSkeleton } from "@/lib/pose-data";
 
 interface GenerateSequenceRequest {
-  skeletons: Skeleton[];
+  skeletons: OpenPoseSkeleton[];
   outputSize: string;
 }
 

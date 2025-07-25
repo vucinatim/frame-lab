@@ -20,10 +20,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-const presets = Object.keys(PRESETS).map((key) => ({
-  value: key,
-  label: `${key} (${PRESETS[key].length} frame${
-    PRESETS[key].length > 1 ? "s" : ""
+const presets = PRESETS.map((preset) => ({
+  value: preset.name,
+  label: `${preset.name} (${preset.animation.length} frame${
+    preset.animation.length > 1 ? "s" : ""
   })`,
 }));
 
@@ -35,11 +35,11 @@ export function AnimationPresets() {
   // Determine if current animation matches any preset
   const getCurrentPresetName = () => {
     const currentSkeletons = skeletons;
-    for (const [presetName, presetSkeletons] of Object.entries(PRESETS)) {
+    for (const preset of PRESETS) {
       if (
-        JSON.stringify(currentSkeletons) === JSON.stringify(presetSkeletons)
+        JSON.stringify(currentSkeletons) === JSON.stringify(preset.animation)
       ) {
-        return presetName;
+        return preset.name;
       }
     }
     return "Custom";
@@ -77,8 +77,11 @@ export function AnimationPresets() {
                   value={preset.value}
                   onSelect={(currentValue) => {
                     setValue(currentValue === value ? "" : currentValue);
-                    if (PRESETS[currentValue]) {
-                      loadSkeletons(PRESETS[currentValue]);
+                    const selectedPreset = PRESETS.find(
+                      (p) => p.name === currentValue
+                    );
+                    if (selectedPreset) {
+                      loadSkeletons(selectedPreset.animation);
                     }
                     setOpen(false);
                   }}

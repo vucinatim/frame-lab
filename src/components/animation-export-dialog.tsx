@@ -10,14 +10,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/lib/pose-data";
+import { OpenPoseSkeleton } from "@/lib/pose-data";
 import { Download, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 interface AnimationExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  skeletons: Skeleton[];
+  skeletons: OpenPoseSkeleton[];
   fps: number;
 }
 

@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import { useStore } from "@/store";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { OpenPoseSkeleton } from "@/lib/pose-data";
 import { PosePreview } from "./pose-preview";
 
 interface AnimationFrameProps {
   frame: {
-    image?: string;
-    skeleton: import("@/lib/pose-data").Skeleton;
+    skeleton: OpenPoseSkeleton;
+    image: string | null;
   };
   index: number;
 }
@@ -46,12 +47,12 @@ export function AnimationFrame({ frame, index }: AnimationFrameProps) {
           src={frame.image}
           alt={`Frame ${index + 1}`}
           fill
-          className="object-cover"
+          className="object-contain"
         />
       )}
-      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors" />
-      <div className="absolute inset-0">
-        <PosePreview skeleton={frame.skeleton} width={96} height={96} />
+      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/10 transition-colors" />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <PosePreview skeleton={frame.skeleton} />
       </div>
     </div>
   );

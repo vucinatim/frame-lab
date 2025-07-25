@@ -20,7 +20,13 @@ export function FrameView() {
           <div className="flex">
             {frames.map((frame, index) => (
               <div key={index} className="p-2 border-r">
-                <AnimationFrame frame={frame} index={index} />
+                <AnimationFrame
+                  frame={{
+                    skeleton: frame.skeleton,
+                    image: frameImages[index] || null,
+                  }}
+                  index={index}
+                />
               </div>
             ))}
           </div>

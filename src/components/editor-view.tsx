@@ -44,8 +44,7 @@ export function EditorView() {
                 <Image
                   src={frameImages[selectedFrame]!}
                   alt={`Frame ${selectedFrame + 1}`}
-                  width={512}
-                  height={512}
+                  fill
                   className="object-contain"
                 />
               </div>
@@ -60,8 +59,7 @@ export function EditorView() {
                     <Image
                       src={frameImages[selectedFrame]!}
                       alt={`Frame ${selectedFrame + 1}`}
-                      width={512}
-                      height={512}
+                      fill
                       className="object-contain"
                     />
                   </div>

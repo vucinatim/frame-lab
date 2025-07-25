@@ -1,77 +1,72 @@
 "use client";
-
 import { useEffect, useRef } from "react";
-import { Skeleton } from "@/lib/pose-data";
+import { OpenPoseSkeleton, LIMB_CONNECTIONS } from "@/lib/pose-data";
 
 interface PosePreviewProps {
-  skeleton: Skeleton;
-  width: number;
-  height: number;
+  skeleton: OpenPoseSkeleton;
 }
 
-export function PosePreview({ skeleton, width, height }: PosePreviewProps) {
+export function PosePreview({ skeleton }: PosePreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // --- Start of new scaling logic ---
-
-    // 1. Find the bounding box of the skeleton
-    let minX = Infinity,
-      minY = Infinity,
-      maxX = -Infinity,
-      maxY = -Infinity;
-    skeleton.forEach((joint) => {
-      minX = Math.min(minX, joint.x);
-      minY = Math.min(minY, joint.y);
-      maxX = Math.max(maxX, joint.x);
-      maxY = Math.max(maxY, joint.y);
-    });
-
-    const skelWidth = maxX - minX;
-    const skelHeight = maxY - minY;
-
-    // 2. Calculate scale factor and translation
-    const padding = 10; // 10px padding
-    const scaleX = (width - padding * 2) / skelWidth;
-    const scaleY = (height - padding * 2) / skelHeight;
-    const scale = Math.min(scaleX, scaleY);
-
-    const translateX = (width - skelWidth * scale) / 2 - minX * scale;
-    const translateY = (height - skelHeight * scale) / 2 - minY * scale;
-
-    // 3. Apply transformation and draw
+    const { width, height } = canvas;
     ctx.clearRect(0, 0, width, height);
-    ctx.save();
-    ctx.translate(translateX, translateY);
-    ctx.scale(scale, scale);
+    // ctx.fillStyle = "black";
+    // ctx.fillRect(0, 0, width, height);
 
-    // Set styles
-    ctx.strokeStyle = "white";
-    ctx.lineWidth = 2 / scale; // Adjust line width based on scale
+    if (!skeleton || Object.keys(skeleton).length === 0) return;
 
-    // Draw skeleton
-    skeleton.forEach((joint) => {
-      if (joint.parentId) {
-        const parentJoint = skeleton.find((j) => j.id === joint.parentId);
-        if (parentJoint) {
-          ctx.beginPath();
-          ctx.moveTo(parentJoint.x, parentJoint.y);
-          ctx.lineTo(joint.x, joint.y);
-          ctx.stroke();
-        }
+    // Calculate scale and offset to fit the skeleton in the canvas
+    const coords = Object.values(skeleton);
+    const minX = Math.min(...coords.map((c) => c![0]));
+    const minY = Math.min(...coords.map((c) => c![1]));
+    const maxX = Math.max(...coords.map((c) => c![0]));
+    const maxY = Math.max(...coords.map((c) => c![1]));
+
+    const skeletonWidth = maxX - minX;
+    const skeletonHeight = maxY - minY;
+    const scale = Math.min(
+      (width - 20) / skeletonWidth,
+      (height - 20) / skeletonHeight
+    );
+    const offsetX = (width - skeletonWidth * scale) / 2 - minX * scale;
+    const offsetY = (height - skeletonHeight * scale) / 2 - minY * scale;
+
+    const transform = (p: [number, number]): [number, number] => {
+      return [p[0] * scale + offsetX, p[1] * scale + offsetY];
+    };
+
+    // Draw limbs
+    ctx.lineWidth = 2;
+    for (const limb of LIMB_CONNECTIONS) {
+      const p1_name = limb.points[0];
+      const p2_name = limb.points[1];
+      const p1 = skeleton[p1_name];
+      const p2 = skeleton[p2_name];
+      if (p1 && p2) {
+        const tp1 = transform(p1);
+        const tp2 = transform(p2);
+        ctx.strokeStyle = limb.color;
+        ctx.beginPath();
+        ctx.moveTo(tp1[0], tp1[1]);
+        ctx.lineTo(tp2[0], tp2[1]);
+        ctx.stroke();
       }
-    });
+    }
+  }, [skeleton]);
 
-    ctx.restore(); // Restore original transformation
-
-    // --- End of new scaling logic ---
-  }, [skeleton, width, height]);
-
-  return <canvas ref={canvasRef} width={width} height={height} />;
+  return (
+    <canvas
+      ref={canvasRef}
+      width={100}
+      height={100}
+      className="rounded-md border"
+    />
+  );
 }

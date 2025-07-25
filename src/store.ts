@@ -1,8 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { Skeleton, DEFAULT_SKELETON, Joint, HIERARCHY } from "@/lib/pose-data";
-import { getAbsoluteRotation, updateChildrenPositions } from "@/lib/pose-utils";
+import {
+  OpenPoseSkeleton,
+  DEFAULT_SKELETON,
+  OpenPoseKeypoint,
+} from "@/lib/pose-data";
 
 export type OutputSize = "256x256" | "512x512" | "768x768" | "1024x1024";
 
@@ -29,7 +32,7 @@ interface CharacterGenerationState {
 interface AppState {
   characterImage: File | null;
   characterImageDataUrl: string | null; // For persistence
-  skeletons: Skeleton[];
+  skeletons: OpenPoseSkeleton[];
   frameImages: (string | null)[]; // Array of image URLs for each frame
   poseImages: (string | null)[]; // Array of pose image data URLs for each frame
   generationState: GenerationState;
@@ -45,15 +48,15 @@ interface AppState {
   isPlaying: boolean;
   fps: number;
   viewMode: ViewMode;
-  poseClipboard: Skeleton | null;
+  poseClipboard: OpenPoseSkeleton | null;
   lastAddedFrame: number | null;
   setCharacterImage: (image: File | null) => void;
   setCharacterImageDataUrl: (dataUrl: string | null) => void;
-  setPoseData: (index: number, data: Skeleton) => void;
-  setJointRotation: (
+  setPoseData: (index: number, data: OpenPoseSkeleton) => void;
+  setJointPosition: (
     frameIndex: number,
-    jointId: string,
-    rotation: number
+    jointId: OpenPoseKeypoint,
+    position: [number, number]
   ) => void;
   translateSkeleton: (frameIndex: number, dx: number, dy: number) => void;
   setGenerationState: (state: GenerationState) => void;
@@ -68,7 +71,7 @@ interface AppState {
   centerAllSkeletons: () => void;
   toggleIsPlaying: () => void;
   setFps: (fps: number) => void;
-  loadSkeletons: (skeletons: Skeleton[]) => void;
+  loadSkeletons: (skeletons: OpenPoseSkeleton[]) => void;
   addFrame: () => void;
   deleteFrame: () => void;
   copyPose: () => void;
@@ -123,22 +126,14 @@ export const useStore = create<AppState>()(
 
           // Calculate bounding box of the *first frame* only
           const firstSkeleton = skeletons[0];
-          if (!firstSkeleton || firstSkeleton.length === 0) return {};
+          if (!firstSkeleton || Object.keys(firstSkeleton).length === 0)
+            return {};
 
-          const { minX, minY, maxX, maxY } = firstSkeleton.reduce(
-            (acc, joint) => ({
-              minX: Math.min(acc.minX, joint.x),
-              minY: Math.min(acc.minY, joint.y),
-              maxX: Math.max(acc.maxX, joint.x),
-              maxY: Math.max(acc.maxY, joint.y),
-            }),
-            {
-              minX: Infinity,
-              minY: Infinity,
-              maxX: -Infinity,
-              maxY: -Infinity,
-            }
-          );
+          const coords = Object.values(firstSkeleton);
+          const minX = Math.min(...coords.map((c) => c![0]));
+          const minY = Math.min(...coords.map((c) => c![1]));
+          const maxX = Math.max(...coords.map((c) => c![0]));
+          const maxY = Math.max(...coords.map((c) => c![1]));
 
           const skeletonCenterX = minX + (maxX - minX) / 2;
           const skeletonCenterY = minY + (maxY - minY) / 2;
@@ -146,13 +141,17 @@ export const useStore = create<AppState>()(
           const dy = stageDimensions.height / 2 - skeletonCenterY;
 
           // Apply the same translation to all frames in the animation
-          const centeredSkeletons = skeletons.map((skeleton) =>
-            skeleton.map((joint) => ({
-              ...joint,
-              x: joint.x + dx,
-              y: joint.y + dy,
-            }))
-          );
+          const centeredSkeletons = skeletons.map((skeleton) => {
+            const newSkeleton: OpenPoseSkeleton = {};
+            for (const key in skeleton) {
+              const k = key as OpenPoseKeypoint;
+              const pos = skeleton[k];
+              if (pos) {
+                newSkeleton[k] = [pos[0] + dx, pos[1] + dy];
+              }
+            }
+            return newSkeleton;
+          });
 
           return { skeletons: centeredSkeletons, initialCenteringDone: true };
         }),
@@ -167,36 +166,11 @@ export const useStore = create<AppState>()(
           skeletons: state.skeletons.map((s, i) => (i === index ? data : s)),
         })),
 
-      setJointRotation: (frameIndex, jointId, newRelativeRotation) =>
+      setJointPosition: (frameIndex, jointId, position) =>
         set((state) => {
           const newSkeletons = [...state.skeletons];
-          const targetSkeleton = JSON.parse(
-            JSON.stringify(newSkeletons[frameIndex])
-          );
-          const jointsById = Object.fromEntries(
-            targetSkeleton.map((j: Joint) => [j.id, j])
-          );
-
-          const targetJoint = jointsById[jointId];
-          if (!targetJoint || !targetJoint.parentId) return {};
-
-          // 1. Update the joint's relative rotation
-          targetJoint.rotation = newRelativeRotation;
-
-          // 2. Update the position of the dragged joint
-          const parent = jointsById[targetJoint.parentId];
-          const targetAbsRotation = getAbsoluteRotation(
-            targetJoint.id,
-            jointsById
-          );
-          targetJoint.x =
-            parent.x + Math.cos(targetAbsRotation) * targetJoint.length;
-          targetJoint.y =
-            parent.y + Math.sin(targetAbsRotation) * targetJoint.length;
-
-          // 3. Recursively update positions of all children
-          updateChildrenPositions(targetJoint.id, targetSkeleton, jointsById);
-
+          const targetSkeleton = { ...newSkeletons[frameIndex] };
+          targetSkeleton[jointId] = position;
           newSkeletons[frameIndex] = targetSkeleton;
           return { skeletons: newSkeletons };
         }),
@@ -204,11 +178,16 @@ export const useStore = create<AppState>()(
       translateSkeleton: (frameIndex, dx, dy) =>
         set((state) => {
           const newSkeletons = [...state.skeletons];
-          newSkeletons[frameIndex] = newSkeletons[frameIndex].map((joint) => ({
-            ...joint,
-            x: joint.x + dx,
-            y: joint.y + dy,
-          }));
+          const newSkeleton: OpenPoseSkeleton = {};
+          const currentSkeleton = newSkeletons[frameIndex];
+          for (const key in currentSkeleton) {
+            const k = key as OpenPoseKeypoint;
+            const pos = currentSkeleton[k];
+            if (pos) {
+              newSkeleton[k] = [pos[0] + dx, pos[1] + dy];
+            }
+          }
+          newSkeletons[frameIndex] = newSkeleton;
           return { skeletons: newSkeletons };
         }),
 
