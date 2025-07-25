@@ -29,8 +29,23 @@ const presets = Object.keys(PRESETS).map((key) => ({
 
 export function AnimationPresets() {
   const [open, setOpen] = React.useState(false);
-  const [value, setValue] = React.useState("Default");
+  const skeletons = useStore((state) => state.skeletons);
   const loadSkeletons = useStore((state) => state.loadSkeletons);
+
+  // Determine if current animation matches any preset
+  const getCurrentPresetName = () => {
+    const currentSkeletons = skeletons;
+    for (const [presetName, presetSkeletons] of Object.entries(PRESETS)) {
+      if (
+        JSON.stringify(currentSkeletons) === JSON.stringify(presetSkeletons)
+      ) {
+        return presetName;
+      }
+    }
+    return "Custom";
+  };
+
+  const [value, setValue] = React.useState(getCurrentPresetName);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -41,9 +56,12 @@ export function AnimationPresets() {
           aria-expanded={open}
           className="w-full max-w-44 justify-between"
         >
-          {value
-            ? presets.find((preset) => preset.value === value)?.label
-            : "Select a preset..."}
+          {value === "Custom"
+            ? `Custom (${skeletons.length} frame${
+                skeletons.length > 1 ? "s" : ""
+              })`
+            : presets.find((preset) => preset.value === value)?.label ||
+              "Select a preset..."}
           <ChevronsUpDown className="opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -59,7 +77,9 @@ export function AnimationPresets() {
                   value={preset.value}
                   onSelect={(currentValue) => {
                     setValue(currentValue === value ? "" : currentValue);
-                    loadSkeletons(PRESETS[currentValue]);
+                    if (PRESETS[currentValue]) {
+                      loadSkeletons(PRESETS[currentValue]);
+                    }
                     setOpen(false);
                   }}
                 >

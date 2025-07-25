@@ -1,8 +1,15 @@
-import { NextResponse } from "next/server";
+import { Skeleton, BONES } from "./pose-data";
 import sharp from "sharp";
-import { Skeleton, BONES } from "@/lib/pose-data";
 
-async function generatePoseImage(
+/**
+ * Generates a pose image from skeleton data by creating an SVG with bones and joints,
+ * then converting it to a PNG buffer. The skeleton is centered within the specified dimensions.
+ * @param skeleton - The skeleton data containing joint positions
+ * @param width - The width of the output image
+ * @param height - The height of the output image
+ * @returns A Buffer containing the PNG image data
+ */
+export async function generatePoseImage(
   skeleton: Skeleton,
   width: number,
   height: number
@@ -66,28 +73,4 @@ async function generatePoseImage(
   `;
 
   return sharp(Buffer.from(svg)).png().toBuffer();
-}
-
-export async function POST(request: Request) {
-  try {
-    const { poseData, outputSize } = await request.json();
-
-    if (!poseData || !outputSize) {
-      return new NextResponse("Missing pose data or output size", {
-        status: 400,
-      });
-    }
-
-    const [width, height] = outputSize.split("x").map(Number);
-
-    const imageBuffer = await generatePoseImage(poseData, width, height);
-    const imageBase64 = `data:image/png;base64,${imageBuffer.toString(
-      "base64"
-    )}`;
-
-    return NextResponse.json([imageBase64]);
-  } catch (error) {
-    console.error("[GENERATE_TEST_ROUTE]", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
-  }
 }

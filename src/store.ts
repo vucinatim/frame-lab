@@ -11,6 +11,7 @@ export type ViewMode = "pose-only" | "image-only" | "stack";
 interface GenerationState {
   status: "idle" | "loading" | "success" | "error";
   message?: string;
+  prediction?: Prediction | null;
 }
 
 interface Prediction {
@@ -30,6 +31,7 @@ interface AppState {
   characterImageDataUrl: string | null; // For persistence
   skeletons: Skeleton[];
   frameImages: (string | null)[]; // Array of image URLs for each frame
+  poseImages: (string | null)[]; // Array of pose image data URLs for each frame
   generationState: GenerationState;
   finalSpriteSheet: string | null;
   outputSize: OutputSize;
@@ -73,6 +75,7 @@ interface AppState {
   pastePose: () => void;
   duplicateFrame: () => void;
   setFrameImage: (frameIndex: number, imageUrl: string | null) => void;
+  setPoseImage: (frameIndex: number, poseImageDataUrl: string | null) => void;
   setViewMode: (mode: ViewMode) => void;
 }
 
@@ -83,6 +86,7 @@ export const useStore = create<AppState>()(
       characterImageDataUrl: null,
       skeletons: Array(10).fill(DEFAULT_SKELETON),
       frameImages: Array(10).fill(null),
+      poseImages: Array(10).fill(null),
       generationState: { status: "idle" },
       finalSpriteSheet: null,
       outputSize: "512x512",
@@ -226,6 +230,7 @@ export const useStore = create<AppState>()(
         set({
           skeletons,
           frameImages: Array(skeletons.length).fill(null),
+          poseImages: Array(skeletons.length).fill(null),
           selectedFrame: 0,
           lastAddedFrame: null,
           initialCenteringDone: false,
@@ -245,9 +250,15 @@ export const useStore = create<AppState>()(
             null, // No image for new frame initially
             ...state.frameImages.slice(state.selectedFrame + 1),
           ];
+          const newPoseImages = [
+            ...state.poseImages.slice(0, state.selectedFrame + 1),
+            null, // No pose image for new frame initially
+            ...state.poseImages.slice(state.selectedFrame + 1),
+          ];
           return {
             skeletons: newSkeletons,
             frameImages: newFrameImages,
+            poseImages: newPoseImages,
             selectedFrame: state.selectedFrame + 1,
             lastAddedFrame: state.selectedFrame + 1,
           };
@@ -267,9 +278,15 @@ export const useStore = create<AppState>()(
             state.frameImages[state.selectedFrame], // Copy the image from the duplicated frame
             ...state.frameImages.slice(state.selectedFrame + 1),
           ];
+          const newPoseImages = [
+            ...state.poseImages.slice(0, state.selectedFrame + 1),
+            state.poseImages[state.selectedFrame], // Copy the pose image from the duplicated frame
+            ...state.poseImages.slice(state.selectedFrame + 1),
+          ];
           return {
             skeletons: newSkeletons,
             frameImages: newFrameImages,
+            poseImages: newPoseImages,
             selectedFrame: state.selectedFrame + 1,
             lastAddedFrame: state.selectedFrame + 1,
           };
@@ -283,9 +300,13 @@ export const useStore = create<AppState>()(
           const newFrameImages = state.frameImages.filter(
             (_, index) => index !== state.selectedFrame
           );
+          const newPoseImages = state.poseImages.filter(
+            (_, index) => index !== state.selectedFrame
+          );
           return {
             skeletons: newSkeletons,
             frameImages: newFrameImages,
+            poseImages: newPoseImages,
             selectedFrame: Math.max(0, state.selectedFrame - 1),
             lastAddedFrame: null,
           };
@@ -312,6 +333,12 @@ export const useStore = create<AppState>()(
           newFrameImages[frameIndex] = imageUrl;
           return { frameImages: newFrameImages };
         }),
+      setPoseImage: (frameIndex: number, poseImageDataUrl: string | null) =>
+        set((state) => {
+          const newPoseImages = [...state.poseImages];
+          newPoseImages[frameIndex] = poseImageDataUrl;
+          return { poseImages: newPoseImages };
+        }),
       setViewMode: (mode: ViewMode) => set({ viewMode: mode }),
     }),
     {
@@ -322,6 +349,7 @@ export const useStore = create<AppState>()(
         characterImageDataUrl: state.characterImageDataUrl,
         skeletons: state.skeletons,
         frameImages: state.frameImages,
+        poseImages: state.poseImages,
         outputSize: state.outputSize,
         finalSpriteSheet: state.finalSpriteSheet,
         selectedFrame: state.selectedFrame,

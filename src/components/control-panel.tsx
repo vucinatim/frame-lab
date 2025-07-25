@@ -9,21 +9,18 @@ import { GenerationControls } from "./generation-controls";
 export function ControlPanel() {
   return (
     <Card className="h-full p-0 overflow-hidden">
-      <ScrollArea className="h-full pb-24">
-        <div className="sticky min-h-0 top-0 p-4 border-b">
+      <ScrollArea className="h-full" hideScrollbar>
+        <div className="sticky min-h-0 top-0 p-4 border-b bg-zinc-900">
           <CardTitle>Control Panel</CardTitle>
         </div>
-        <CardContent
-          style={{
-            minHeight: "calc(100vh - 180px)",
-          }}
-          className="space-y-4 p-4 pb-16"
-        >
+        <CardContent className="space-y-4 p-4 pb-[200px]">
           <CharacterImageSection />
           <GenerationSettings />
         </CardContent>
+        <div className="sticky bottom-0 p-4 border-t bg-zinc-900">
+          <GenerationControls />
+        </div>
       </ScrollArea>
-      <GenerationControls />
     </Card>
   );
 }

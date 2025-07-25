@@ -20,13 +20,14 @@ export async function POST(request: NextRequest) {
 
     // Generate images for each frame in the sequence
     const generatedImages: string[] = [];
+    const poseImages: string[] = [];
 
     for (let i = 0; i < skeletons.length; i++) {
       const skeleton = skeletons[i];
 
-      // Call the existing generate-test endpoint for each frame
+      // Call the existing generate-test-frame endpoint for each frame
       const response = await fetch(
-        `${request.nextUrl.origin}/api/generate-test`,
+        `${request.nextUrl.origin}/api/generate-test-frame`,
         {
           method: "POST",
           headers: {
@@ -44,12 +45,14 @@ export async function POST(request: NextRequest) {
       }
 
       const result = await response.json();
-      generatedImages.push(result[0]); // Add the generated image URL
+      generatedImages.push(result.generatedImage); // Add the generated image URL
+      poseImages.push(result.poseImage); // Add the pose image URL
     }
 
     return NextResponse.json({
       success: true,
       images: generatedImages,
+      poseImages: poseImages,
       frameCount: skeletons.length,
     });
   } catch (error) {
