@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,10 +20,19 @@ import {
   Copy,
   ClipboardPaste,
   ClipboardCopy,
+  Download,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAnimationPlayback } from "@/hooks/use-animation-playback";
 import { AnimationPresets } from "./animation-presets";
+import { AnimationExportDialog } from "./animation-export-dialog";
 
 export function Toolbar() {
   const {
@@ -39,7 +49,11 @@ export function Toolbar() {
     pastePose,
     poseClipboard,
     duplicateFrame,
+    viewMode,
+    setViewMode,
   } = useStore();
+
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   useAnimationPlayback();
 
@@ -136,6 +150,21 @@ export function Toolbar() {
                 <p>Paste Pose</p>
               </TooltipContent>
             </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  disabled={isPlaying || frameCount === 0}
+                  onClick={() => setShowExportDialog(true)}
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Export Animation</p>
+              </TooltipContent>
+            </Tooltip>
           </TooltipProvider>
         </div>
 
@@ -196,6 +225,18 @@ export function Toolbar() {
           <div className="text-sm font-mono opacity-50">
             Frame: {selectedFrame + 1} / {frameCount}
           </div>
+          <div className="flex items-center gap-2">
+            <Select value={viewMode} onValueChange={setViewMode}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pose-only">Pose Only</SelectItem>
+                <SelectItem value="image-only">Image Only</SelectItem>
+                <SelectItem value="stack">Stack</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex items-center gap-2 w-32">
             <Slider
               min={1}
@@ -209,6 +250,13 @@ export function Toolbar() {
           </div>
         </div>
       </CardContent>
+
+      <AnimationExportDialog
+        open={showExportDialog}
+        onOpenChange={setShowExportDialog}
+        skeletons={skeletons}
+        fps={fps}
+      />
     </Card>
   );
 }

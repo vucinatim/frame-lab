@@ -13,7 +13,7 @@ const PoseEditor = dynamic(() => import("@/components/pose-editor"), {
 });
 
 export function EditorView() {
-  const { generationState, finalSpriteSheet } = useStore();
+  const { generationState, selectedFrame, frameImages, viewMode } = useStore();
 
   return (
     <div className="relative flex flex-col w-full h-full gap-4">
@@ -23,16 +23,42 @@ export function EditorView() {
         <Card className="absolute inset-0 flex flex-col p-0 overflow-hidden">
           <CardContent className="absolute inset-0">
             {generationState.status === "loading" && <Spinner size="large" />}
-            {generationState.status !== "loading" && !finalSpriteSheet && (
-              <PoseEditor />
+
+            {/* View Mode: Pose Only */}
+            {viewMode === "pose-only" && <PoseEditor />}
+
+            {/* View Mode: Image Only */}
+            {viewMode === "image-only" && frameImages[selectedFrame] && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Image
+                  src={frameImages[selectedFrame]!}
+                  alt={`Frame ${selectedFrame + 1}`}
+                  width={512}
+                  height={512}
+                  className="object-contain"
+                />
+              </div>
             )}
-            {finalSpriteSheet && (
-              <Image
-                src={finalSpriteSheet}
-                alt="Generated Sprite Sheet"
-                width={512}
-                height={512}
-              />
+
+            {/* View Mode: Stack (Image + Pose Editor) */}
+            {viewMode === "stack" && (
+              <>
+                {/* Background: Show selected frame image if it exists */}
+                {frameImages[selectedFrame] && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Image
+                      src={frameImages[selectedFrame]!}
+                      alt={`Frame ${selectedFrame + 1}`}
+                      width={512}
+                      height={512}
+                      className="object-contain"
+                    />
+                  </div>
+                )}
+
+                {/* Foreground: Always show pose editor */}
+                <PoseEditor />
+              </>
             )}
           </CardContent>
         </Card>

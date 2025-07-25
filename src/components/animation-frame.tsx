@@ -33,7 +33,7 @@ export function AnimationFrame({ frame, index }: AnimationFrameProps) {
   return (
     <div
       className={cn(
-        "relative w-24 h-24 rounded-md overflow-hidden cursor-pointer border-2 group transition-colors duration-500",
+        "relative w-24 h-24 rounded-md overflow-hidden cursor-pointer border-2 group transition-colors duration-250",
         isSelected ? "border-sky-500" : "border-transparent",
         animate && "bg-sky-200"
       )}

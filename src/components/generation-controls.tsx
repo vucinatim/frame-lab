@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -8,27 +9,41 @@ export function GenerationControls() {
   const {
     generationState,
     setGenerationState,
-    poseData,
+    skeletons,
+    selectedFrame,
     outputSize,
     setFinalSpriteSheet,
     currentFrameGenerationId,
     setCurrentFrameGenerationId,
     sequenceGenerationId,
     setSequenceGenerationId,
+    setFrameImage,
   } = useStore();
 
+  const [sequenceProgress, setSequenceProgress] = useState(0);
+
   const handleGenerateCurrentFrame = async () => {
+    if (skeletons.length === 0 || selectedFrame >= skeletons.length) {
+      setGenerationState({
+        status: "error",
+        message: "No frames available to generate",
+      });
+      return;
+    }
+
     setGenerationState({ status: "loading" });
     setCurrentFrameGenerationId("current-frame-" + Date.now());
 
     try {
+      const currentFrameSkeleton = skeletons[selectedFrame];
+
       const response = await fetch("/api/generate-test", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          poseData,
+          poseData: currentFrameSkeleton,
           outputSize,
         }),
       });
@@ -38,7 +53,9 @@ export function GenerationControls() {
       }
 
       const result = await response.json();
-      setFinalSpriteSheet(result[0]);
+      const generatedImageUrl = result[0];
+      setFinalSpriteSheet(generatedImageUrl);
+      setFrameImage(selectedFrame, generatedImageUrl);
       setGenerationState({ status: "success" });
       setCurrentFrameGenerationId(null);
     } catch (error) {
@@ -52,17 +69,26 @@ export function GenerationControls() {
   };
 
   const handleGenerateSequence = async () => {
+    if (skeletons.length === 0) {
+      setGenerationState({
+        status: "error",
+        message: "No frames available to generate",
+      });
+      return;
+    }
+
     setGenerationState({ status: "loading" });
     setSequenceGenerationId("sequence-" + Date.now());
+    setSequenceProgress(0);
 
     try {
-      const response = await fetch("/api/generate-test", {
+      const response = await fetch("/api/generate-test-sequence", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          poseData,
+          skeletons,
           outputSize,
         }),
       });
@@ -72,9 +98,18 @@ export function GenerationControls() {
       }
 
       const result = await response.json();
-      setFinalSpriteSheet(result[0]);
+
+      // Set all generated images to their respective frames
+      result.images.forEach((imageUrl: string, index: number) => {
+        setFrameImage(index, imageUrl);
+        setSequenceProgress(((index + 1) / skeletons.length) * 100);
+      });
+
+      // Set the final sprite sheet to the first image for preview
+      setFinalSpriteSheet(result.images[0]);
       setGenerationState({ status: "success" });
       setSequenceGenerationId(null);
+      setSequenceProgress(0);
     } catch (error) {
       console.error(error);
       setGenerationState({
@@ -82,6 +117,7 @@ export function GenerationControls() {
         message: (error as Error).message,
       });
       setSequenceGenerationId(null);
+      setSequenceProgress(0);
     }
   };
 
@@ -111,57 +147,58 @@ export function GenerationControls() {
   };
 
   return (
-    <div className="p-4 border-t sticky bottom-0 bg-white space-y-2">
-      <Button
-        variant="outline"
-        className="w-full"
-        onClick={handleGenerateCurrentFrame}
-        disabled={generationState.status === "loading"}
-      >
-        {generationState.status === "loading" && currentFrameGenerationId ? (
-          <div className="flex items-center gap-2">
+    <div className="p-4 border-t sticky bottom-0 space-y-2">
+      {generationState.status === "loading" && currentFrameGenerationId ? (
+        <div className="space-y-2">
+          <div className="flex items-center justify-center gap-2 p-4 border rounded-md bg-muted">
             <Spinner />
-            <span>Generating...</span>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCancelGeneration("current-frame");
-              }}
-            >
-              Cancel
-            </Button>
+            <span>Generating Frame {selectedFrame + 1}...</span>
           </div>
-        ) : (
-          "Generate Current Frame"
-        )}
-      </Button>
+          <Button
+            variant="destructive"
+            className="w-full"
+            onClick={() => handleCancelGeneration("current-frame")}
+          >
+            Cancel Generation
+          </Button>
+        </div>
+      ) : (
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={handleGenerateCurrentFrame}
+          disabled={generationState.status === "loading"}
+        >
+          Generate Frame {selectedFrame + 1}
+        </Button>
+      )}
 
-      <Button
-        className="w-full"
-        onClick={handleGenerateSequence}
-        disabled={generationState.status === "loading"}
-      >
-        {generationState.status === "loading" && sequenceGenerationId ? (
-          <div className="flex items-center gap-2">
+      {generationState.status === "loading" && sequenceGenerationId ? (
+        <div className="space-y-2">
+          <div className="flex items-center justify-center gap-2 p-4 border rounded-md bg-muted">
             <Spinner />
-            <span>Generating...</span>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCancelGeneration("sequence");
-              }}
-            >
-              Cancel
-            </Button>
+            <span>
+              Generating Sequence ({skeletons.length} frames)...{" "}
+              {Math.round(sequenceProgress)}%
+            </span>
           </div>
-        ) : (
-          "Generate Entire Sequence"
-        )}
-      </Button>
+          <Button
+            variant="destructive"
+            className="w-full"
+            onClick={() => handleCancelGeneration("sequence")}
+          >
+            Cancel Generation
+          </Button>
+        </div>
+      ) : (
+        <Button
+          className="w-full"
+          onClick={handleGenerateSequence}
+          disabled={generationState.status === "loading"}
+        >
+          Generate Sequence ({skeletons.length} frames)
+        </Button>
+      )}
     </div>
   );
 }

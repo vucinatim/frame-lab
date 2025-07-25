@@ -6,9 +6,9 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function FrameView() {
-  const { skeletons } = useStore();
-  const frames = skeletons.map((skeleton) => ({
-    image: undefined, // Placeholder, will be replaced by generated image
+  const { skeletons, frameImages } = useStore();
+  const frames = skeletons.map((skeleton, index) => ({
+    image: frameImages[index] || undefined,
     skeleton,
   }));
 

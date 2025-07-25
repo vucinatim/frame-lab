@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { Stage, Layer, Circle, Line } from "react-konva";
 import { useStore } from "@/store";
 import { KonvaEventObject } from "konva/lib/Node";
@@ -8,25 +8,40 @@ import { BONES } from "@/lib/pose-data";
 import { getAbsoluteRotation } from "@/lib/pose-utils";
 
 const PoseEditor = () => {
-  const { skeletons, selectedFrame, setJointRotation, translateSkeleton } =
-    useStore();
+  const {
+    skeletons,
+    selectedFrame,
+    setJointRotation,
+    translateSkeleton,
+    stageDimensions,
+    setStageDimensions,
+    initialCenteringDone,
+    centerAllSkeletons,
+  } = useStore();
   const poseData = skeletons[selectedFrame];
-  const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
   const lastDragPos = useRef({ x: 0, y: 0 });
-  const jointsById = Object.fromEntries(poseData.map((j) => [j.id, j]));
+  const jointsById =
+    poseData && Object.fromEntries(poseData.map((j) => [j.id, j]));
 
   useEffect(() => {
     // A little hack to make sure the container is rendered before we get its size
     setTimeout(() => {
       const container = document.getElementById("editor-container");
       if (container) {
-        setStageSize({
+        setStageDimensions({
           width: container.offsetWidth,
           height: container.offsetHeight,
         });
       }
     }, 100);
-  }, []);
+  }, [setStageDimensions]);
+
+  useEffect(() => {
+    // Center the skeleton when a new preset is loaded
+    if (stageDimensions.width > 0 && !initialCenteringDone) {
+      centerAllSkeletons();
+    }
+  }, [stageDimensions, initialCenteringDone, centerAllSkeletons, skeletons]);
 
   const handleDragStart = (e: KonvaEventObject<DragEvent>) => {
     lastDragPos.current = { x: e.target.x(), y: e.target.y() };
@@ -62,7 +77,7 @@ const PoseEditor = () => {
 
   return (
     <div id="editor-container" className="w-full h-full">
-      <Stage width={stageSize.width} height={stageSize.height}>
+      <Stage width={stageDimensions.width} height={stageDimensions.height}>
         <Layer>
           {/* Render bones */}
           {BONES.map(([j1Id, j2Id], i) => {
@@ -73,25 +88,26 @@ const PoseEditor = () => {
               <Line
                 key={`bone-${i}`}
                 points={[j1.x, j1.y, j2.x, j2.y]}
-                stroke="black"
+                stroke="white"
                 strokeWidth={4}
               />
             );
           })}
 
           {/* Render joints */}
-          {poseData.map((joint) => (
-            <Circle
-              key={joint.id}
-              x={joint.x}
-              y={joint.y}
-              radius={8}
-              fill={joint.id === "hip" ? "blue" : "red"}
-              draggable
-              onDragStart={handleDragStart}
-              onDragMove={(e) => handleJointDrag(e, joint.id)}
-            />
-          ))}
+          {poseData &&
+            poseData.map((joint) => (
+              <Circle
+                key={joint.id}
+                x={joint.x}
+                y={joint.y}
+                radius={8}
+                fill={joint.id === "hip" ? "yellow" : "magenta"}
+                draggable
+                onDragStart={handleDragStart}
+                onDragMove={(e) => handleJointDrag(e, joint.id)}
+              />
+            ))}
         </Layer>
       </Stage>
     </div>

@@ -10,14 +10,14 @@ export function ControlPanel() {
   return (
     <Card className="h-full p-0 overflow-hidden">
       <ScrollArea className="h-full pb-24">
-        <div className="sticky min-h-0 top-0 p-4 bg-white border-b">
+        <div className="sticky min-h-0 top-0 p-4 border-b">
           <CardTitle>Control Panel</CardTitle>
         </div>
         <CardContent
           style={{
             minHeight: "calc(100vh - 180px)",
           }}
-          className="space-y-4 p-4 pb-16 bg-zinc-50"
+          className="space-y-4 p-4 pb-16"
         >
           <CharacterImageSection />
           <GenerationSettings />

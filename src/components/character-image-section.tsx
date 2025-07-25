@@ -154,8 +154,8 @@ export function CharacterImageSection() {
       </div>
 
       {/* Character Generation */}
-      <div className="space-y-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-        <Label className="text-sm font-medium text-blue-900">
+      <div className="space-y-3 p-3 rounded-lg border border-sky-500">
+        <Label className="text-sm font-medium text-sky-500">
           Or Generate Character
         </Label>
         <form onSubmit={handleCharacterGeneration} className="space-y-3">
@@ -185,6 +185,7 @@ export function CharacterImageSection() {
           <Button
             type="submit"
             size="sm"
+            variant="outline"
             className="w-full"
             disabled={characterGenState.status === "loading"}
           >
@@ -244,7 +245,7 @@ export function CharacterImageSection() {
             <Button
               size="sm"
               variant="ghost"
-              className="absolute top-2 right-2 h-8 w-8 p-0 bg-white/80 hover:bg-white/90 z-10"
+              className="absolute top-2 right-2 h-8 w-8 p-0 z-10"
               onClick={(e) => {
                 e.stopPropagation();
                 const imageUrl = characterImage

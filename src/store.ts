@@ -6,6 +6,8 @@ import { getAbsoluteRotation, updateChildrenPositions } from "@/lib/pose-utils";
 
 export type OutputSize = "256x256" | "512x512" | "768x768" | "1024x1024";
 
+export type ViewMode = "pose-only" | "image-only" | "stack";
+
 interface GenerationState {
   status: "idle" | "loading" | "success" | "error";
   message?: string;
@@ -27,6 +29,7 @@ interface AppState {
   characterImage: File | null;
   characterImageDataUrl: string | null; // For persistence
   skeletons: Skeleton[];
+  frameImages: (string | null)[]; // Array of image URLs for each frame
   generationState: GenerationState;
   finalSpriteSheet: string | null;
   outputSize: OutputSize;
@@ -35,8 +38,11 @@ interface AppState {
   sequenceGenerationId: string | null;
   lightboxOpen: boolean;
   selectedFrame: number;
+  stageDimensions: { width: number; height: number };
+  initialCenteringDone: boolean;
   isPlaying: boolean;
   fps: number;
+  viewMode: ViewMode;
   poseClipboard: Skeleton | null;
   lastAddedFrame: number | null;
   setCharacterImage: (image: File | null) => void;
@@ -56,6 +62,8 @@ interface AppState {
   setSequenceGenerationId: (id: string | null) => void;
   setLightboxOpen: (isOpen: boolean) => void;
   setSelectedFrame: (index: number) => void;
+  setStageDimensions: (dimensions: { width: number; height: number }) => void;
+  centerAllSkeletons: () => void;
   toggleIsPlaying: () => void;
   setFps: (fps: number) => void;
   loadSkeletons: (skeletons: Skeleton[]) => void;
@@ -64,6 +72,8 @@ interface AppState {
   copyPose: () => void;
   pastePose: () => void;
   duplicateFrame: () => void;
+  setFrameImage: (frameIndex: number, imageUrl: string | null) => void;
+  setViewMode: (mode: ViewMode) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -72,6 +82,7 @@ export const useStore = create<AppState>()(
       characterImage: null,
       characterImageDataUrl: null,
       skeletons: Array(10).fill(DEFAULT_SKELETON),
+      frameImages: Array(10).fill(null),
       generationState: { status: "idle" },
       finalSpriteSheet: null,
       outputSize: "512x512",
@@ -84,10 +95,63 @@ export const useStore = create<AppState>()(
       sequenceGenerationId: null,
       lightboxOpen: false,
       selectedFrame: 0,
+      stageDimensions: { width: 0, height: 0 },
+      initialCenteringDone: false,
       isPlaying: false,
       fps: 24,
+      viewMode: "stack" as ViewMode,
       poseClipboard: null,
       lastAddedFrame: null,
+
+      setStageDimensions: (dimensions) => set({ stageDimensions: dimensions }),
+
+      centerAllSkeletons: () =>
+        set((state) => {
+          const { skeletons, stageDimensions } = state;
+          if (
+            stageDimensions.width === 0 ||
+            stageDimensions.height === 0 ||
+            !skeletons ||
+            skeletons.length === 0
+          ) {
+            return {}; // Not ready
+          }
+
+          // Calculate bounding box of the *first frame* only
+          const firstSkeleton = skeletons[0];
+          if (!firstSkeleton || firstSkeleton.length === 0) return {};
+
+          const { minX, minY, maxX, maxY } = firstSkeleton.reduce(
+            (acc, joint) => ({
+              minX: Math.min(acc.minX, joint.x),
+              minY: Math.min(acc.minY, joint.y),
+              maxX: Math.max(acc.maxX, joint.x),
+              maxY: Math.max(acc.maxY, joint.y),
+            }),
+            {
+              minX: Infinity,
+              minY: Infinity,
+              maxX: -Infinity,
+              maxY: -Infinity,
+            }
+          );
+
+          const skeletonCenterX = minX + (maxX - minX) / 2;
+          const skeletonCenterY = minY + (maxY - minY) / 2;
+          const dx = stageDimensions.width / 2 - skeletonCenterX;
+          const dy = stageDimensions.height / 2 - skeletonCenterY;
+
+          // Apply the same translation to all frames in the animation
+          const centeredSkeletons = skeletons.map((skeleton) =>
+            skeleton.map((joint) => ({
+              ...joint,
+              x: joint.x + dx,
+              y: joint.y + dy,
+            }))
+          );
+
+          return { skeletons: centeredSkeletons, initialCenteringDone: true };
+        }),
 
       setCharacterImage: (image) => set({ characterImage: image }),
 
@@ -159,7 +223,13 @@ export const useStore = create<AppState>()(
       toggleIsPlaying: () => set((state) => ({ isPlaying: !state.isPlaying })),
       setFps: (fps) => set({ fps }),
       loadSkeletons: (skeletons) =>
-        set({ skeletons, selectedFrame: 0, lastAddedFrame: null }),
+        set({
+          skeletons,
+          frameImages: Array(skeletons.length).fill(null),
+          selectedFrame: 0,
+          lastAddedFrame: null,
+          initialCenteringDone: false,
+        }),
       addFrame: () =>
         set((state) => {
           const newSkeleton = JSON.parse(
@@ -170,8 +240,14 @@ export const useStore = create<AppState>()(
             newSkeleton,
             ...state.skeletons.slice(state.selectedFrame + 1),
           ];
+          const newFrameImages = [
+            ...state.frameImages.slice(0, state.selectedFrame + 1),
+            null, // No image for new frame initially
+            ...state.frameImages.slice(state.selectedFrame + 1),
+          ];
           return {
             skeletons: newSkeletons,
+            frameImages: newFrameImages,
             selectedFrame: state.selectedFrame + 1,
             lastAddedFrame: state.selectedFrame + 1,
           };
@@ -186,8 +262,14 @@ export const useStore = create<AppState>()(
             newSkeleton,
             ...state.skeletons.slice(state.selectedFrame + 1),
           ];
+          const newFrameImages = [
+            ...state.frameImages.slice(0, state.selectedFrame + 1),
+            state.frameImages[state.selectedFrame], // Copy the image from the duplicated frame
+            ...state.frameImages.slice(state.selectedFrame + 1),
+          ];
           return {
             skeletons: newSkeletons,
+            frameImages: newFrameImages,
             selectedFrame: state.selectedFrame + 1,
             lastAddedFrame: state.selectedFrame + 1,
           };
@@ -198,8 +280,12 @@ export const useStore = create<AppState>()(
           const newSkeletons = state.skeletons.filter(
             (_, index) => index !== state.selectedFrame
           );
+          const newFrameImages = state.frameImages.filter(
+            (_, index) => index !== state.selectedFrame
+          );
           return {
             skeletons: newSkeletons,
+            frameImages: newFrameImages,
             selectedFrame: Math.max(0, state.selectedFrame - 1),
             lastAddedFrame: null,
           };
@@ -220,6 +306,13 @@ export const useStore = create<AppState>()(
           );
           return { skeletons: newSkeletons, lastAddedFrame: null };
         }),
+      setFrameImage: (frameIndex: number, imageUrl: string | null) =>
+        set((state) => {
+          const newFrameImages = [...state.frameImages];
+          newFrameImages[frameIndex] = imageUrl;
+          return { frameImages: newFrameImages };
+        }),
+      setViewMode: (mode: ViewMode) => set({ viewMode: mode }),
     }),
     {
       name: "frame-lab-storage",
@@ -228,10 +321,12 @@ export const useStore = create<AppState>()(
         // Don't persist File objects, but persist the data URL
         characterImageDataUrl: state.characterImageDataUrl,
         skeletons: state.skeletons,
+        frameImages: state.frameImages,
         outputSize: state.outputSize,
         finalSpriteSheet: state.finalSpriteSheet,
         selectedFrame: state.selectedFrame,
         fps: state.fps,
+        viewMode: state.viewMode,
       }),
     }
   )
