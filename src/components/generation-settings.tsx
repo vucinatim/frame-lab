@@ -18,7 +18,8 @@ const OUTPUT_SIZES: OutputSize[] = [
 ];
 
 export function GenerationSettings() {
-  const { outputSize, setOutputSize } = useStore();
+  const outputSize = useStore((state) => state.outputSize);
+  const setOutputSize = useStore((state) => state.setOutputSize);
 
   return (
     <div className="space-y-2">

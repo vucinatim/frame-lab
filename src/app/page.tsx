@@ -7,8 +7,11 @@ import { ControlPanel } from "@/components/control-panel";
 import { EditorView } from "@/components/editor-view";
 
 export default function Home() {
-  const { characterImage, characterImageDataUrl, setCharacterImage } =
-    useStore();
+  const characterImage = useStore((state) => state.characterImage);
+  const characterImageDataUrl = useStore(
+    (state) => state.characterImageDataUrl
+  );
+  const setCharacterImage = useStore((state) => state.setCharacterImage);
 
   // Recover character image from data URL on page load
   useEffect(() => {

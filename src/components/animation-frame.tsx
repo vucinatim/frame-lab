@@ -15,7 +15,9 @@ interface AnimationFrameProps {
 }
 
 export function AnimationFrame({ frame, index }: AnimationFrameProps) {
-  const { selectedFrame, setSelectedFrame, lastAddedFrame } = useStore();
+  const selectedFrame = useStore((state) => state.selectedFrame);
+  const lastAddedFrame = useStore((state) => state.lastAddedFrame);
+  const setSelectedFrame = useStore((state) => state.setSelectedFrame);
   const isSelected = selectedFrame === index;
   const isNewlyAdded = lastAddedFrame === index;
   const [animate, setAnimate] = useState(false);

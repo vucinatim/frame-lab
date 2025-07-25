@@ -13,7 +13,10 @@ const PoseEditor = dynamic(() => import("@/components/pose-editor"), {
 });
 
 export function EditorView() {
-  const { generationState, selectedFrame, frameImages, viewMode } = useStore();
+  const generationState = useStore((state) => state.generationState);
+  const selectedFrame = useStore((state) => state.selectedFrame);
+  const frameImages = useStore((state) => state.frameImages);
+  const viewMode = useStore((state) => state.viewMode);
 
   return (
     <div className="relative flex flex-col w-full h-full gap-4">

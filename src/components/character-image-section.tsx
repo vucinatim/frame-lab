@@ -10,16 +10,19 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import Image from "next/image";
 
 export function CharacterImageSection() {
-  const {
-    characterImage,
-    characterImageDataUrl,
-    setCharacterImage,
-    setCharacterImageDataUrl,
-    characterGenState,
-    setCharacterGenState,
-    lightboxOpen,
-    setLightboxOpen,
-  } = useStore();
+  const characterImage = useStore((state) => state.characterImage);
+  const characterImageDataUrl = useStore(
+    (state) => state.characterImageDataUrl
+  );
+  const characterGenState = useStore((state) => state.characterGenState);
+  const lightboxOpen = useStore((state) => state.lightboxOpen);
+
+  const setCharacterImage = useStore((state) => state.setCharacterImage);
+  const setCharacterImageDataUrl = useStore(
+    (state) => state.setCharacterImageDataUrl
+  );
+  const setCharacterGenState = useStore((state) => state.setCharacterGenState);
+  const setLightboxOpen = useStore((state) => state.setLightboxOpen);
 
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>

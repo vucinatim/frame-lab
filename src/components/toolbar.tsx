@@ -35,23 +35,22 @@ import { AnimationPresets } from "./animation-presets";
 import { AnimationExportDialog } from "./animation-export-dialog";
 
 export function Toolbar() {
-  const {
-    selectedFrame,
-    setSelectedFrame,
-    isPlaying,
-    toggleIsPlaying,
-    fps,
-    setFps,
-    skeletons,
-    addFrame,
-    deleteFrame,
-    copyPose,
-    pastePose,
-    poseClipboard,
-    duplicateFrame,
-    viewMode,
-    setViewMode,
-  } = useStore();
+  const selectedFrame = useStore((state) => state.selectedFrame);
+  const isPlaying = useStore((state) => state.isPlaying);
+  const fps = useStore((state) => state.fps);
+  const skeletons = useStore((state) => state.skeletons);
+  const poseClipboard = useStore((state) => state.poseClipboard);
+  const viewMode = useStore((state) => state.viewMode);
+
+  const setSelectedFrame = useStore((state) => state.setSelectedFrame);
+  const toggleIsPlaying = useStore((state) => state.toggleIsPlaying);
+  const setFps = useStore((state) => state.setFps);
+  const addFrame = useStore((state) => state.addFrame);
+  const deleteFrame = useStore((state) => state.deleteFrame);
+  const copyPose = useStore((state) => state.copyPose);
+  const pastePose = useStore((state) => state.pastePose);
+  const duplicateFrame = useStore((state) => state.duplicateFrame);
+  const setViewMode = useStore((state) => state.setViewMode);
 
   const [showExportDialog, setShowExportDialog] = useState(false);
 

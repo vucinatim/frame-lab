@@ -6,19 +6,24 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 
 export function GenerationControls() {
-  const {
-    generationState,
-    setGenerationState,
-    skeletons,
-    selectedFrame,
-    outputSize,
-    setFinalSpriteSheet,
-    currentFrameGenerationId,
-    setCurrentFrameGenerationId,
-    sequenceGenerationId,
-    setSequenceGenerationId,
-    setFrameImage,
-  } = useStore();
+  const generationState = useStore((state) => state.generationState);
+  const skeletons = useStore((state) => state.skeletons);
+  const selectedFrame = useStore((state) => state.selectedFrame);
+  const outputSize = useStore((state) => state.outputSize);
+  const currentFrameGenerationId = useStore(
+    (state) => state.currentFrameGenerationId
+  );
+  const sequenceGenerationId = useStore((state) => state.sequenceGenerationId);
+
+  const setGenerationState = useStore((state) => state.setGenerationState);
+  const setFinalSpriteSheet = useStore((state) => state.setFinalSpriteSheet);
+  const setCurrentFrameGenerationId = useStore(
+    (state) => state.setCurrentFrameGenerationId
+  );
+  const setSequenceGenerationId = useStore(
+    (state) => state.setSequenceGenerationId
+  );
+  const setFrameImage = useStore((state) => state.setFrameImage);
 
   const [sequenceProgress, setSequenceProgress] = useState(0);
 

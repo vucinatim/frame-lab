@@ -30,7 +30,7 @@ const presets = Object.keys(PRESETS).map((key) => ({
 export function AnimationPresets() {
   const [open, setOpen] = React.useState(false);
   const [value, setValue] = React.useState("Default");
-  const { loadSkeletons } = useStore();
+  const loadSkeletons = useStore((state) => state.loadSkeletons);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

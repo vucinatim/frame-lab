@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { useStore } from "@/store";
 
 export function useAnimationPlayback() {
-  const { isPlaying } = useStore();
+  const isPlaying = useStore((state) => state.isPlaying);
   const requestRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
 

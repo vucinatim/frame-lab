@@ -8,16 +8,15 @@ import { BONES } from "@/lib/pose-data";
 import { getAbsoluteRotation } from "@/lib/pose-utils";
 
 const PoseEditor = () => {
-  const {
-    skeletons,
-    selectedFrame,
-    setJointRotation,
-    translateSkeleton,
-    stageDimensions,
-    setStageDimensions,
-    initialCenteringDone,
-    centerAllSkeletons,
-  } = useStore();
+  const skeletons = useStore((state) => state.skeletons);
+  const selectedFrame = useStore((state) => state.selectedFrame);
+  const stageDimensions = useStore((state) => state.stageDimensions);
+  const initialCenteringDone = useStore((state) => state.initialCenteringDone);
+
+  const setJointRotation = useStore((state) => state.setJointRotation);
+  const translateSkeleton = useStore((state) => state.translateSkeleton);
+  const setStageDimensions = useStore((state) => state.setStageDimensions);
+  const centerAllSkeletons = useStore((state) => state.centerAllSkeletons);
   const poseData = skeletons[selectedFrame];
   const lastDragPos = useRef({ x: 0, y: 0 });
   const jointsById =
