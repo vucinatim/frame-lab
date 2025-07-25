@@ -58,6 +58,10 @@ interface AppState {
     jointId: OpenPoseKeypoint,
     position: [number, number]
   ) => void;
+  setMultipleJointPositions: (
+    frameIndex: number,
+    updates: { keypoint: OpenPoseKeypoint; position: [number, number] }[]
+  ) => void;
   translateSkeleton: (frameIndex: number, dx: number, dy: number) => void;
   setGenerationState: (state: GenerationState) => void;
   setFinalSpriteSheet: (url: string | null) => void;
@@ -171,6 +175,17 @@ export const useStore = create<AppState>()(
           const newSkeletons = [...state.skeletons];
           const targetSkeleton = { ...newSkeletons[frameIndex] };
           targetSkeleton[jointId] = position;
+          newSkeletons[frameIndex] = targetSkeleton;
+          return { skeletons: newSkeletons };
+        }),
+
+      setMultipleJointPositions: (frameIndex, updates) =>
+        set((state) => {
+          const newSkeletons = [...state.skeletons];
+          const targetSkeleton = { ...newSkeletons[frameIndex] };
+          updates.forEach(({ keypoint, position }) => {
+            targetSkeleton[keypoint] = position;
+          });
           newSkeletons[frameIndex] = targetSkeleton;
           return { skeletons: newSkeletons };
         }),

@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { Stage, Layer, Line, Circle } from "react-konva";
 import { KonvaEventObject } from "konva/lib/Node";
 import { useStore } from "@/store";
@@ -9,10 +9,43 @@ import {
   OPENPOSE_KEYPOINTS,
 } from "@/lib/pose-data";
 
+// Define a clear parent-child hierarchy for the skeleton
+const HIERARCHY: Partial<Record<OpenPoseKeypoint, OpenPoseKeypoint[]>> = {
+  Neck: ["LShoulder", "RShoulder", "LHip", "RHip", "Nose"],
+  LShoulder: ["LElbow"],
+  LElbow: ["LWrist"],
+  RShoulder: ["RElbow"],
+  RElbow: ["RWrist"],
+  LHip: ["LKnee"],
+  LKnee: ["LAnkle"],
+  RHip: ["RKnee"],
+  RKnee: ["RAnkle"],
+  Nose: ["LEye", "REye"],
+  LEye: ["LEar"],
+  REye: ["REar"],
+};
+
+const getDescendants = (
+  keypoint: OpenPoseKeypoint,
+  hierarchy: typeof HIERARCHY
+): OpenPoseKeypoint[] => {
+  const descendants: OpenPoseKeypoint[] = [];
+  const children = hierarchy[keypoint];
+  if (children) {
+    descendants.push(...children);
+    children.forEach((child) => {
+      descendants.push(...getDescendants(child, hierarchy));
+    });
+  }
+  return descendants;
+};
+
 const PoseEditor: React.FC = () => {
   const selectedFrame = useStore((state) => state.selectedFrame);
   const skeletons = useStore((state) => state.skeletons);
-  const setJointPosition = useStore((state) => state.setJointPosition);
+  const setMultipleJointPositions = useStore(
+    (state) => state.setMultipleJointPositions
+  );
   const stageDimensions = useStore((state) => state.stageDimensions);
   const setStageDimensions = useStore((state) => state.setStageDimensions);
   const centerAllSkeletons = useStore((state) => state.centerAllSkeletons);
@@ -20,6 +53,12 @@ const PoseEditor: React.FC = () => {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const poseData = skeletons[selectedFrame];
+
+  const [draggedJoint, setDraggedJoint] = useState<{
+    keypoint: OpenPoseKeypoint;
+    descendants: OpenPoseKeypoint[];
+    initialPositions: Record<OpenPoseKeypoint, [number, number]>;
+  } | null>(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -47,12 +86,61 @@ const PoseEditor: React.FC = () => {
     }
   }, [stageDimensions, initialCenteringDone, centerAllSkeletons, skeletons]);
 
-  const handleJointDrag = (
+  const handleDragStart = (keypoint: OpenPoseKeypoint) => {
+    const descendants = getDescendants(keypoint, HIERARCHY);
+    const initialPositions: Record<string, [number, number]> = {};
+
+    [keypoint, ...descendants].forEach((k) => {
+      const pos = poseData?.[k];
+      if (pos) {
+        initialPositions[k] = [...pos];
+      }
+    });
+
+    setDraggedJoint({ keypoint, descendants, initialPositions });
+  };
+
+  const handleDragMove = (
     keypoint: OpenPoseKeypoint,
     e: KonvaEventObject<DragEvent>
   ) => {
-    const newPos: [number, number] = [e.target.x(), e.target.y()];
-    setJointPosition(selectedFrame, keypoint, newPos);
+    if (!draggedJoint || draggedJoint.keypoint !== keypoint) return;
+
+    const currentSkeleton = skeletons[selectedFrame];
+    const { initialPositions, descendants } = draggedJoint;
+    const initialParentPos = initialPositions[keypoint];
+    const currentParentPos = [e.target.x(), e.target.y()] as [number, number];
+
+    const dx = currentParentPos[0] - initialParentPos[0];
+    const dy = currentParentPos[1] - initialParentPos[1];
+
+    const updates: {
+      keypoint: OpenPoseKeypoint;
+      position: [number, number];
+    }[] = [];
+
+    updates.push({ keypoint, position: currentParentPos });
+
+    descendants.forEach((descendant) => {
+      const initialDescendantPos = initialPositions[descendant];
+      if (initialDescendantPos && currentSkeleton[descendant]) {
+        updates.push({
+          keypoint: descendant,
+          position: [
+            initialDescendantPos[0] + dx,
+            initialDescendantPos[1] + dy,
+          ],
+        });
+      }
+    });
+
+    if (updates.length > 0) {
+      setMultipleJointPositions(selectedFrame, updates);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedJoint(null);
   };
 
   return (
@@ -92,8 +180,9 @@ const PoseEditor: React.FC = () => {
                   stroke="black"
                   strokeWidth={2}
                   draggable
-                  onDragMove={(e) => handleJointDrag(keypoint, e)}
-                  onDragEnd={(e) => handleJointDrag(keypoint, e)}
+                  onDragStart={() => handleDragStart(keypoint)}
+                  onDragMove={(e) => handleDragMove(keypoint, e)}
+                  onDragEnd={handleDragEnd}
                 />
               );
             }
