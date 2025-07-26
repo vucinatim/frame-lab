@@ -13,7 +13,7 @@ Check it out:
 
 **FrameLab** is a web-based multi-frame image generation tool that enables you to create consistent character animations using AI. Design custom pose sequences with an interactive OpenPose editor, then generate a complete series of character images that maintain visual consistency across all frames.
 
-![FrameLab Screenshot](https://raw.githubusercontent.com/vucinatim/frame-lab/49674cd4a84e207233e025dde0e6935bf56d65ee/public/screenshot.png) 
+![FrameLab Screenshot](https://github.com/vucinatim/frame-lab/blob/main/public/frame-lab-gif.gif?raw=true) 
 
 ## ✨ Features
 
