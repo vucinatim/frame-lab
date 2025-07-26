@@ -20,12 +20,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const { prompt, characterType = "fantasy hero" } = await request.json();
+    const { prompt } = await request.json();
 
-    // Create a standardized T-pose prompt for fantasy characters
-    const tPosePrompt = prompt
-      ? `${prompt}, full body A-pose, standing straight in a relaxed pose, front view, centered composition`
-      : `A majestic ${characterType} in full body A-pose, standing straight with arms extended horizontally, detailed fantasy armor and equipment, front view, centered composition, high quality, detailed`;
+    if (!prompt || !prompt.trim()) {
+      return new NextResponse("Prompt is required for character generation", {
+        status: 400,
+      });
+    }
+
+    // Create a standardized T-pose prompt optimized for character animation
+    const tPosePrompt = `${prompt.trim()}, full body, standing straight in a relaxed pose, arms down, front view, centered composition, clean background, high quality character design, detailed`;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const options: any = {

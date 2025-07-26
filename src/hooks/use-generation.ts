@@ -28,7 +28,7 @@ export function useGeneration() {
   );
 
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generationType, setGenerationType] = useState<GenerationType>("test");
+  const [generationType, setGenerationType] = useState<GenerationType>("real");
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const constructPrompt = (frameIndex: number, options: GenerationOptions) => {

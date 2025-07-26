@@ -2,7 +2,7 @@
 
 Check it out:
 <p>
-  <a href="[URL_TO_YOUR_DEPLOYMENT]" target="_blank" rel="noopener noreferrer">
+  <a href="https://frame-lab-chi.vercel.app/" target="_blank" rel="noopener noreferrer">
     <img src="https://vercel.com/button" alt="Deploy with Vercel" height="32" />
   </a>
   &nbsp;

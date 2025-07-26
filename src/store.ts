@@ -6,10 +6,22 @@ import {
   DEFAULT_SKELETON,
   OpenPoseKeypoint,
 } from "@/lib/pose-data";
+import {
+  getDefaultAnimation,
+  getDefaultAnimationFps,
+  getDefaultAnimationFrameCount,
+} from "@/lib/animation-presets";
 
 export type OutputSize = "256x256" | "512x512" | "768x768" | "1024x1024";
 
 export type ViewMode = "pose-only" | "image-only" | "stack";
+
+export interface GeneratedImage {
+  id: string;
+  url: string;
+  prompt: string;
+  timestamp: number;
+}
 
 interface GenerationState {
   status: "idle" | "loading" | "success" | "error";
@@ -53,6 +65,7 @@ interface AppState {
   characterPrompt: string; // Visual description of the character
   motionPrompt: string; // General motion description for the sequence
   framePrompts: (string | null)[]; // Optional custom prompts for each frame
+  generationHistory: GeneratedImage[]; // History of generated character images
   setCharacterImage: (image: File | null) => void;
   setCharacterImageDataUrl: (dataUrl: string | null) => void;
   setPoseData: (index: number, data: OpenPoseSkeleton) => void;
@@ -90,6 +103,8 @@ interface AppState {
   setCharacterPrompt: (prompt: string) => void;
   setMotionPrompt: (prompt: string) => void;
   setFramePrompt: (frameIndex: number, prompt: string | null) => void;
+  addToGenerationHistory: (image: GeneratedImage) => void;
+  clearGenerationHistory: () => void;
 }
 
 export const useStore = create<AppState>()(
@@ -97,9 +112,9 @@ export const useStore = create<AppState>()(
     (set, get) => ({
       characterImage: null,
       characterImageDataUrl: null,
-      skeletons: Array(10).fill(DEFAULT_SKELETON),
-      frameImages: Array(10).fill(null),
-      poseImages: Array(10).fill(null),
+      skeletons: getDefaultAnimation(),
+      frameImages: Array(getDefaultAnimationFrameCount()).fill(null),
+      poseImages: Array(getDefaultAnimationFrameCount()).fill(null),
       generationState: { status: "idle" },
       finalSpriteSheet: null,
       outputSize: "512x512",
@@ -115,13 +130,14 @@ export const useStore = create<AppState>()(
       stageDimensions: { width: 0, height: 0 },
       initialCenteringDone: false,
       isPlaying: false,
-      fps: 24,
+      fps: getDefaultAnimationFps(),
       viewMode: "stack" as ViewMode,
       poseClipboard: null,
       lastAddedFrame: null,
       characterPrompt: "",
       motionPrompt: "",
-      framePrompts: Array(10).fill(null),
+      framePrompts: Array(getDefaultAnimationFrameCount()).fill(null),
+      generationHistory: [],
 
       setStageDimensions: (dimensions) => set({ stageDimensions: dimensions }),
 
@@ -368,6 +384,12 @@ export const useStore = create<AppState>()(
           newFramePrompts[frameIndex] = prompt;
           return { framePrompts: newFramePrompts };
         }),
+      addToGenerationHistory: (image: GeneratedImage) =>
+        set((state) => {
+          const updated = [image, ...state.generationHistory];
+          return { generationHistory: updated.slice(0, 5) }; // Keep only 5 most recent
+        }),
+      clearGenerationHistory: () => set({ generationHistory: [] }),
     }),
     {
       name: "frame-lab-storage",
@@ -386,6 +408,7 @@ export const useStore = create<AppState>()(
         characterPrompt: state.characterPrompt,
         motionPrompt: state.motionPrompt,
         framePrompts: state.framePrompts,
+        generationHistory: state.generationHistory,
       }),
     }
   )

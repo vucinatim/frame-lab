@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { OpenPoseSkeleton } from "@/lib/pose-data";
+import { type Animation } from "@/lib/animation-presets";
 import { Download, Copy } from "lucide-react";
 import { toast } from "sonner";
 
@@ -29,7 +30,7 @@ export function AnimationExportDialog({
 }: AnimationExportDialogProps) {
   const [animationName, setAnimationName] = useState("My Animation");
 
-  const exportData = {
+  const exportData: Animation = {
     name: animationName,
     fps,
     frames: skeletons,

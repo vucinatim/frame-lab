@@ -138,7 +138,9 @@ export function GenerationControls() {
       )}
 
       {generationState.status === "success" && (
-        <div className="text-green-500 text-sm">Generation completed!</div>
+        <div className="text-green-500 text-sm text-center">
+          Generation completed!
+        </div>
       )}
     </div>
   );
