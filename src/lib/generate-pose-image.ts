@@ -24,7 +24,7 @@ function brightenRgb(colorStr: string, factor: number): string {
 
 /**
  * Generates a pose image from OpenPose skeleton data by creating an SVG with colored limbs and keypoints,
- * then converting it to a PNG buffer.
+ * then converting it to a PNG buffer with padding to ensure the character's full body is within frame.
  * @param skeleton - The OpenPose skeleton data.
  * @param width - The width of the output image.
  * @param height - The height of the output image.
@@ -46,7 +46,7 @@ export async function generatePoseImage(
     return sharp(Buffer.from(svg)).png().toBuffer();
   }
 
-  // Calculate scale and offset to fit the skeleton in the canvas
+  // Calculate scale and offset to fit the skeleton in the canvas with padding
   const coords = Object.values(skeleton).filter(Boolean) as [number, number][];
   if (coords.length === 0) {
     const svg = `
@@ -64,15 +64,25 @@ export async function generatePoseImage(
 
   const skeletonWidth = maxX - minX;
   const skeletonHeight = maxY - minY;
-  const padding = 20;
+
+  // Add extra padding to ensure full body is visible
+  const topPadding = 100; // Extra space for head
+  const bottomPadding = 100; // Extra space for feet
+  const sidePadding = 20; // Minimal side padding
+
+  // Calculate available space for the skeleton
+  const availableWidth = width - sidePadding * 2;
+  const availableHeight = height - (topPadding + bottomPadding);
 
   const scale = Math.min(
-    (width - padding) / skeletonWidth,
-    (height - padding) / skeletonHeight
+    availableWidth / skeletonWidth,
+    availableHeight / skeletonHeight
   );
 
+  // Center the skeleton in the available space
   const offsetX = (width - skeletonWidth * scale) / 2 - minX * scale;
-  const offsetY = (height - skeletonHeight * scale) / 2 - minY * scale;
+  const offsetY =
+    topPadding + (availableHeight - skeletonHeight * scale) / 2 - minY * scale;
 
   const transform = (p: [number, number]): [number, number] => {
     return [p[0] * scale + offsetX, p[1] * scale + offsetY];

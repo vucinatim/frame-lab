@@ -23,6 +23,7 @@ export function CharacterImageSection() {
   );
   const setCharacterGenState = useStore((state) => state.setCharacterGenState);
   const setLightboxOpen = useStore((state) => state.setLightboxOpen);
+  const setCharacterPrompt = useStore((state) => state.setCharacterPrompt);
 
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -107,6 +108,11 @@ export function CharacterImageSection() {
 
       if (prediction.status === "succeeded") {
         setCharacterGenState({ status: "success", prediction, error: null });
+        // Save the character prompt for use in animation generation
+        const fullCharacterPrompt = prompt
+          ? `${prompt}, ${characterType}`
+          : characterType;
+        setCharacterPrompt(fullCharacterPrompt);
       } else {
         setCharacterGenState({
           status: "error",
@@ -230,7 +236,7 @@ export function CharacterImageSection() {
 
       {/* Unified Image Preview */}
       {(characterImage || characterImageDataUrl) && (
-        <div className="space-y-2">
+        <div className="space-y-2 z-0">
           <Label className="text-xs">Current Character</Label>
           <div className="relative aspect-square w-full max-w-[200px] mx-auto cursor-pointer group">
             <Image

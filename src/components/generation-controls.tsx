@@ -35,19 +35,15 @@ export function GenerationControls() {
     cancelGeneration,
   } = useGeneration();
 
-  const [prompt, setPrompt] = useState("");
-
   const handleGenerateCurrentFrame = async () => {
     await generateCurrentFrame({
       type: generationType,
-      prompt,
     });
   };
 
   const handleGenerateSequence = async () => {
     await generateSequence({
       type: generationType,
-      prompt,
     });
   };
 
@@ -80,23 +76,10 @@ export function GenerationControls() {
         </div>
       </div>
 
-      {generationType === "real" && (
-        <div className="space-y-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="prompt">Prompt</Label>
-            <Input
-              id="prompt"
-              placeholder="e.g., dynamic action pose, cinematic lighting"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-            />
-            {isRealGenerationDisabled && (
-              <p className="text-xs text-yellow-500">
-                Please upload or generate a character image first.
-              </p>
-            )}
-          </div>
-        </div>
+      {generationType === "real" && isRealGenerationDisabled && (
+        <p className="text-xs text-yellow-500">
+          Please upload or generate a character image first.
+        </p>
       )}
 
       <div className="flex gap-2">

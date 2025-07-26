@@ -42,11 +42,24 @@ export async function POST(request: Request) {
     // 2. Prepare the ComfyUI workflow
     const comfyWorkflow = JSON.parse(JSON.stringify(workflow));
 
-    // Inject the user's prompt into the positive prompt node
+    // Construct the full prompt for the workflow
+    const baseTechnicalPrompt =
+      "full body, including hands and feet, without weapon, only character, 2d game asset, character concept art, clean line art, digital painting, masterpiece, best quality, on a solid green background";
+
+    let fullPrompt;
+    if (characterPrompt && characterPrompt.trim()) {
+      fullPrompt = `${characterPrompt.trim()}, ${baseTechnicalPrompt}`;
+    } else {
+      fullPrompt = baseTechnicalPrompt;
+    }
+
+    // Replace the placeholder in the workflow with our constructed prompt
     const positivePromptNode = comfyWorkflow["6"];
-    if (positivePromptNode) {
-      positivePromptNode.inputs.text =
-        `${characterPrompt}, ` + positivePromptNode.inputs.text;
+    if (
+      positivePromptNode &&
+      positivePromptNode.inputs.text === "PLACEHOLDER_PROMPT"
+    ) {
+      positivePromptNode.inputs.text = fullPrompt;
     }
 
     // 3. Create a zip file with the input images

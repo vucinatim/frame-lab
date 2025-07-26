@@ -7,7 +7,7 @@
       "sampler_name": "dpmpp_2m_sde_gpu",
       "scheduler": "karras",
       "denoise": 1,
-      "model": ["23", 0],
+      "model": ["26", 0],
       "positive": ["12", 0],
       "negative": ["12", 1],
       "latent_image": ["5", 0]
@@ -112,7 +112,7 @@
   },
   "13": {
     "inputs": {
-      "image": "ComfyUI_Transparent_00001_.webp"
+      "image": "character.png"
     },
     "class_type": "LoadImage",
     "_meta": {
@@ -189,7 +189,41 @@
     },
     "class_type": "ApplyPulid",
     "_meta": {
-      "title": "Apply PuLID"
+      "title": "Apply PuLID (Identity)"
+    }
+  },
+  "24": {
+    "inputs": {
+      "ipadapter_file": "ip-adapter-plus_sdxl_vit-h.safetensors"
+    },
+    "class_type": "IPAdapterModelLoader",
+    "_meta": {
+      "title": "Load IPAdapter Model (SDXL)"
+    }
+  },
+  "25": {
+    "inputs": {
+      "clip_name": "CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors"
+    },
+    "class_type": "CLIPVisionLoader",
+    "_meta": {
+      "title": "Load CLIP Vision (for IPAdapter)"
+    }
+  },
+  "26": {
+    "inputs": {
+      "weight": 0.55,
+      "weight_type": "style transfer (SDXL)",
+      "start_at": 0,
+      "end_at": 1,
+      "model": ["23", 0],
+      "ipadapter": ["24", 0],
+      "image": ["13", 0],
+      "clip_vision": ["25", 0]
+    },
+    "class_type": "IPAdapterAdvanced",
+    "_meta": {
+      "title": "Apply IPAdapter (Style)"
     }
   }
 }

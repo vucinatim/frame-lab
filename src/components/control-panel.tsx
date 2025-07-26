@@ -5,6 +5,7 @@ import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { CharacterImageSection } from "./character-image-section";
 import { GenerationSettings } from "./generation-settings";
 import { GenerationControls } from "./generation-controls";
+import { PromptSettings } from "./prompt-settings";
 
 export function ControlPanel() {
   return (
@@ -15,6 +16,7 @@ export function ControlPanel() {
         </div>
         <CardContent className="space-y-4 p-4 pb-[200px]">
           <CharacterImageSection />
+          <PromptSettings />
           <GenerationSettings />
         </CardContent>
         <div className="sticky bottom-0 p-4 border-t bg-zinc-900">

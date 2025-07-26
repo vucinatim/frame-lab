@@ -50,6 +50,9 @@ interface AppState {
   viewMode: ViewMode;
   poseClipboard: OpenPoseSkeleton | null;
   lastAddedFrame: number | null;
+  characterPrompt: string; // Visual description of the character
+  motionPrompt: string; // General motion description for the sequence
+  framePrompts: (string | null)[]; // Optional custom prompts for each frame
   setCharacterImage: (image: File | null) => void;
   setCharacterImageDataUrl: (dataUrl: string | null) => void;
   setPoseData: (index: number, data: OpenPoseSkeleton) => void;
@@ -84,6 +87,9 @@ interface AppState {
   setFrameImage: (frameIndex: number, imageUrl: string | null) => void;
   setPoseImage: (frameIndex: number, poseImageDataUrl: string | null) => void;
   setViewMode: (mode: ViewMode) => void;
+  setCharacterPrompt: (prompt: string) => void;
+  setMotionPrompt: (prompt: string) => void;
+  setFramePrompt: (frameIndex: number, prompt: string | null) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -113,6 +119,9 @@ export const useStore = create<AppState>()(
       viewMode: "stack" as ViewMode,
       poseClipboard: null,
       lastAddedFrame: null,
+      characterPrompt: "",
+      motionPrompt: "",
+      framePrompts: Array(10).fill(null),
 
       setStageDimensions: (dimensions) => set({ stageDimensions: dimensions }),
 
@@ -225,6 +234,7 @@ export const useStore = create<AppState>()(
           skeletons,
           frameImages: Array(skeletons.length).fill(null),
           poseImages: Array(skeletons.length).fill(null),
+          framePrompts: Array(skeletons.length).fill(null),
           selectedFrame: 0,
           lastAddedFrame: null,
           initialCenteringDone: false,
@@ -249,10 +259,16 @@ export const useStore = create<AppState>()(
             null, // No pose image for new frame initially
             ...state.poseImages.slice(state.selectedFrame + 1),
           ];
+          const newFramePrompts = [
+            ...state.framePrompts.slice(0, state.selectedFrame + 1),
+            null, // No custom prompt for new frame initially
+            ...state.framePrompts.slice(state.selectedFrame + 1),
+          ];
           return {
             skeletons: newSkeletons,
             frameImages: newFrameImages,
             poseImages: newPoseImages,
+            framePrompts: newFramePrompts,
             selectedFrame: state.selectedFrame + 1,
             lastAddedFrame: state.selectedFrame + 1,
           };
@@ -277,10 +293,16 @@ export const useStore = create<AppState>()(
             state.poseImages[state.selectedFrame], // Copy the pose image from the duplicated frame
             ...state.poseImages.slice(state.selectedFrame + 1),
           ];
+          const newFramePrompts = [
+            ...state.framePrompts.slice(0, state.selectedFrame + 1),
+            state.framePrompts[state.selectedFrame], // Copy the frame prompt from the duplicated frame
+            ...state.framePrompts.slice(state.selectedFrame + 1),
+          ];
           return {
             skeletons: newSkeletons,
             frameImages: newFrameImages,
             poseImages: newPoseImages,
+            framePrompts: newFramePrompts,
             selectedFrame: state.selectedFrame + 1,
             lastAddedFrame: state.selectedFrame + 1,
           };
@@ -297,10 +319,14 @@ export const useStore = create<AppState>()(
           const newPoseImages = state.poseImages.filter(
             (_, index) => index !== state.selectedFrame
           );
+          const newFramePrompts = state.framePrompts.filter(
+            (_, index) => index !== state.selectedFrame
+          );
           return {
             skeletons: newSkeletons,
             frameImages: newFrameImages,
             poseImages: newPoseImages,
+            framePrompts: newFramePrompts,
             selectedFrame: Math.max(0, state.selectedFrame - 1),
             lastAddedFrame: null,
           };
@@ -334,6 +360,14 @@ export const useStore = create<AppState>()(
           return { poseImages: newPoseImages };
         }),
       setViewMode: (mode: ViewMode) => set({ viewMode: mode }),
+      setCharacterPrompt: (prompt: string) => set({ characterPrompt: prompt }),
+      setMotionPrompt: (prompt: string) => set({ motionPrompt: prompt }),
+      setFramePrompt: (frameIndex: number, prompt: string | null) =>
+        set((state) => {
+          const newFramePrompts = [...state.framePrompts];
+          newFramePrompts[frameIndex] = prompt;
+          return { framePrompts: newFramePrompts };
+        }),
     }),
     {
       name: "frame-lab-storage",
@@ -349,6 +383,9 @@ export const useStore = create<AppState>()(
         selectedFrame: state.selectedFrame,
         fps: state.fps,
         viewMode: state.viewMode,
+        characterPrompt: state.characterPrompt,
+        motionPrompt: state.motionPrompt,
+        framePrompts: state.framePrompts,
       }),
     }
   )
