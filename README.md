@@ -2,7 +2,7 @@
 
 Check it out:
 <p>
-  <a href="/screenshot.png" target="_blank" rel="noopener noreferrer">
+  <a href="[URL_TO_YOUR_DEPLOYMENT]" target="_blank" rel="noopener noreferrer">
     <img src="https://vercel.com/button" alt="Deploy with Vercel" height="32" />
   </a>
   &nbsp;
@@ -13,8 +13,7 @@ Check it out:
 
 **FrameLab** is a web-based multi-frame image generation tool that enables you to create consistent character animations using AI. Design custom pose sequences with an interactive OpenPose editor, then generate a complete series of character images that maintain visual consistency across all frames.
 
-![FrameLab Screenshot](https://raw.githubusercontent.com/vucinatim/FrameLab/main/public/images/screenshot.png) 
-*(You'll need to replace this with a real screenshot of your app)*
+![FrameLab Screenshot](https://raw.githubusercontent.com/vucinatim/frame-lab/49674cd4a84e207233e025dde0e6935bf56d65ee/public/screenshot.png) 
 
 ## ✨ Features
 

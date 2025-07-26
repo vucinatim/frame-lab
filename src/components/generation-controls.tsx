@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -11,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useGeneration, GenerationType } from "@/hooks/use-generation";
 
