@@ -54,14 +54,16 @@ export function AnimationPresets() {
           variant="ghost"
           role="combobox"
           aria-expanded={open}
-          className="w-full max-w-44 justify-between"
+          className="w-full max-w-44 truncate justify-between"
         >
-          {value === "Custom"
-            ? `Custom (${skeletons.length} frame${
-                skeletons.length > 1 ? "s" : ""
-              })`
-            : presets.find((preset) => preset.value === value)?.label ||
-              "Select a preset..."}
+          <span className="truncate">
+            {value === "Custom"
+              ? `Custom (${skeletons.length} frame${
+                  skeletons.length > 1 ? "s" : ""
+                })`
+              : presets.find((preset) => preset.value === value)?.label ||
+                "Select a preset..."}
+          </span>
           <ChevronsUpDown className="opacity-50" />
         </Button>
       </PopoverTrigger>

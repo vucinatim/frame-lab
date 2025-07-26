@@ -24,8 +24,8 @@ export async function POST(request: Request) {
 
     // Create a standardized T-pose prompt for fantasy characters
     const tPosePrompt = prompt
-      ? `${prompt}, full body T-pose, fantasy character, detailed armor and equipment, standing straight with arms extended, front view, centered composition`
-      : `A majestic ${characterType} in full body T-pose, standing straight with arms extended horizontally, detailed fantasy armor and equipment, front view, centered composition, high quality, detailed`;
+      ? `${prompt}, full body A-pose, standing straight in a relaxed pose, front view, centered composition`
+      : `A majestic ${characterType} in full body A-pose, standing straight with arms extended horizontally, detailed fantasy armor and equipment, front view, centered composition, high quality, detailed`;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const options: any = {

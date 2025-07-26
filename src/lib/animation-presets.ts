@@ -1,4 +1,6 @@
 import { OpenPoseSkeleton, DEFAULT_SKELETON } from "./pose-data";
+import runCycle from "./animations/run_cycle.json";
+import animePose from "./animations/anime_pose.json";
 
 export interface AnimationPreset {
   name: string;
@@ -33,6 +35,14 @@ export const PRESETS: AnimationPreset[] = [
     name: "Default T-Pose",
     // Deep copy to prevent mutation
     animation: JSON.parse(JSON.stringify([DEFAULT_SKELETON])),
+  },
+  {
+    name: "Run Cycle",
+    animation: JSON.parse(JSON.stringify(runCycle.frames)),
+  },
+  {
+    name: "Anime Pose",
+    animation: JSON.parse(JSON.stringify(animePose.frames)),
   },
   {
     name: "Hand Wave",
